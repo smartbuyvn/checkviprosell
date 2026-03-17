@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Fastify API / Orchestrator Node
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    # Executes the existing known script pattern natively without requiring a pre-built Dockerfile
+    command: sh -c "npm install && npx tsx src/server.ts"
+    restart: unless-stopped
+    # Internal port 3001 only; Nginx is the sole ingress gateway thus protecting the node process.
+    expose:
+      - "3001"
+    environment:
+      - NODE_ENV=staging
+      - API_PORT=3001
+      - API_HOST=0.0.0.0
+    env_file:
+      - .env.staging.backend
+    healthcheck:
+      # Avoiding curl dependency, utilizing native Node fetch
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Mock Worker Daemon (Simulates queues)
+  mock-worker:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    # Executes the standard worker script
+    command: sh -c "npm install && npx tsx src/worker.ts"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=staging
+    env_file:
+      - .env.staging.backend
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Dedicated Staging Redis (BullMQ Cache)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Port 6379 is NOT exposed to host. Kept internal for security.
+    expose:
+      - "6379"
+    volumes:
+      - redis_staging_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-staging_mock_pass}
+    healthcheck:
+      # Correctly authenticate via redis-cli to pass healthcheck against requirepass
+      test: ["CMD", "sh", "-c", "redis-cli -a \"$${REDIS_PASSWORD:-staging_mock_pass}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Reverse Proxy (Nginx)
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.staging.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  redis_staging_data:
+
+# NOTE: The Frontend (React/Vite) is assumed to be deployed statically via Vercel/Netlify.
+# Database (Postgres) is managed securely via the remote Supabase Staging Project.

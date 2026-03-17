@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Supabase Local Postgres
+  # Provides the actual database for Edge functions and React interactions
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: viprosell
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Queue Data (Currently unused by mock backend, but required for schema)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # NOTE: Physical FaceFusion & Render Workers have been explicitly removed 
+  # from the local compose file as they do not physically exist in the current Node codebase.
+  # Do not attempt to mount `viprosell/render:latest` until the Fastify mock boundaries are gutted.
+
+volumes:
+  db_data:
+  redis_data:
