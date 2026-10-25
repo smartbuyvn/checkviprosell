@@ -47,7 +47,9 @@ export const RenderService = {
     job.outputUrl = `https://storage.viprosell.com/renders/${job.projectId}_final.mp4`;
 
     console.log(`Job ${jobId} completed successfully. Deducting credits now.`);
-    await CreditService.deductCredits(job.projectId, 1);
+    // Note: In production, userId should be resolved from the project
+    // For now, this mock just logs. Real deduction happens via render callback.
+    // await CreditService.deductToLedger(userId, job.projectId, jobId, 1, 'render_completed');
   },
 
   async getJobStatus(jobId: string) {

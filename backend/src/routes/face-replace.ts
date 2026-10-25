@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { FaceReplaceService } from '../services/face-replace.service';
+import { getVerifiedUserId, requireProjectOwner } from '../lib/auth';
 
 export async function faceReplaceRoutes(fastify: FastifyInstance) {
   fastify.post('/queue', async (request, reply) => {
@@ -9,6 +10,9 @@ export async function faceReplaceRoutes(fastify: FastifyInstance) {
       if (!projectId || !sourceImageUrl || !targetVideoUrl) {
          return reply.status(400).send({ error: 'Missing required parameters' });
       }
+
+      const userId = await requireProjectOwner(request, reply, projectId);
+      if (!userId) return reply;
 
       const job = await FaceReplaceService.queueJob(projectId, sourceImageUrl, targetVideoUrl);
 
@@ -31,6 +35,9 @@ export async function faceReplaceRoutes(fastify: FastifyInstance) {
 
   fastify.get('/status/:jobId', async (request, reply) => {
     try {
+      const userId = await getVerifiedUserId(request.headers.authorization);
+      if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
+
       const { jobId } = request.params as any;
       const status = await FaceReplaceService.getJobStatus(jobId);
       
