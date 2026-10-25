@@ -22,3 +22,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ─── ENV FILES — NEVER COMMIT THESE ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.vault
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.vault
+
+# Render output (videos — không commit file media lớn)
+renders_output/
+*.mp4
+*.mov
+
+# SSH private keys — tuyệt đối không commit
+*.pem
+id_ed25519*
+id_rsa*
+*.ppk
+
+# Dotenv vault key (không commit — chỉ lưu trong CI/CD secrets)
+.env.keys
