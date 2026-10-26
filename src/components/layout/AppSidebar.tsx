@@ -1,13 +1,13 @@
-﻿/**
- * Viprosell â€” App Sidebar Navigation
+/**
+ * Viprosell — App Sidebar Navigation
  * Logo 36x29px, credit balance, auth-aware.
  */
 
 import { useState, useEffect } from 'react';
-import logoSrc from '@/assets/logo.png';
+import logoSrc from '@/assets/logo.svg';
 import {
   LayoutDashboard, FolderPlus, Settings, LogOut,
-  UserCircle, Coins,
+  UserCircle, Coins, Users,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,8 +23,10 @@ import { Link } from 'react-router-dom';
 
 const mainNav = [
   { title: 'Dashboard', url: ROUTES.DASHBOARD, icon: LayoutDashboard },
-  { title: 'Táº¡o má»›i', url: ROUTES.NEW_PROJECT, icon: FolderPlus },
-  { title: 'TÃ i khoáº£n', url: ROUTES.ACCOUNT, icon: UserCircle },
+  { title: 'Tạo mới', url: ROUTES.NEW_PROJECT, icon: FolderPlus },
+  { title: 'Tiếp thị LK', url: ROUTES.AFFILIATE, icon: Users },
+  { title: 'Thanh toán (Billing)', url: ROUTES.BILLING, icon: Coins },
+  { title: 'Tài khoản', url: ROUTES.ACCOUNT, icon: UserCircle },
 ];
 
 const adminNav = [
@@ -51,7 +53,7 @@ export function AppSidebar() {
             <img src={logoSrc} alt="Viprosell" className="w-[36px] h-[29px] object-contain" />
             {!collapsed && (
               <span className="font-display text-lg font-bold">
-                <span className="text-foreground">Vidio</span>
+                <span className="text-foreground">Vipro</span>
                 <span className="text-gradient-primary">Sell</span>
               </span>
             )}
@@ -146,7 +148,7 @@ export function AppSidebar() {
           className="w-full justify-start text-muted-foreground hover:text-foreground"
         >
           <LogOut className="h-4 w-4 mr-2" />
-          {!collapsed && <span>ÄÄƒng xuáº¥t</span>}
+          {!collapsed && <span>Đăng xuất</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

@@ -1,14 +1,30 @@
-﻿/**
- * Viprosell â€” Public Footer
+/**
+ * Viprosell — Public Footer
  * Logo 36x29px, consistent links.
+ * Legal links point to /terms and /privacy pages.
  */
 
 import { forwardRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
-import logoSrc from '@/assets/logo.png';
+import logoSrc from '@/assets/logo.svg';
 
 export const PublicFooter = forwardRef<HTMLElement>((_, ref) => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  /** Handle anchor links: scroll if on landing, else navigate to landing with scroll */
+  const handleAnchorClick = (e: React.MouseEvent, hash: string) => {
+    e.preventDefault();
+    if (pathname === '/') {
+      const el = document.querySelector(hash);
+      el?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Dùng chung pattern với Header: Nối thẳng hash vào URL để browser tự trượt
+      navigate('/' + hash);
+    }
+  };
+
   return (
     <footer ref={ref} className="py-10 border-t border-border bg-background">
       <div className="container px-4">
@@ -18,42 +34,66 @@ export const PublicFooter = forwardRef<HTMLElement>((_, ref) => {
             <div className="flex items-center gap-2 mb-2">
               <img src={logoSrc} alt="Viprosell" className="w-[36px] h-[29px] object-contain" />
               <span className="font-display text-lg font-bold">
-                <span className="text-foreground">Vidio</span>
+                <span className="text-foreground">Vipro</span>
                 <span className="text-gradient-primary">Sell</span>
               </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Video bÃ¡n hÃ ng cho seller thÃ´ng minh.
+              Video bán hàng cho seller thông minh.
               <br />
-              Tá»« áº£nh sáº£n pháº©m tháº­t â†’ video chá»‘t Ä‘Æ¡n.
+              Từ ảnh sản phẩm thật → video chốt đơn.
             </p>
           </div>
 
           {/* Product links */}
           <div>
-            <h4 className="text-sm font-medium text-foreground mb-3">Sáº£n pháº©m</h4>
+            <h4 className="text-sm font-medium text-foreground mb-3">Sản phẩm</h4>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <Link to={ROUTES.PRICING} className="hover:text-foreground transition-colors w-fit">Báº£ng giÃ¡</Link>
-              <Link to="/#demo" className="hover:text-foreground transition-colors w-fit">Demo</Link>
-              <Link to="/#faq" className="hover:text-foreground transition-colors w-fit">FAQ</Link>
-              <Link to={ROUTES.LOGIN} className="hover:text-foreground transition-colors w-fit">ÄÄƒng nháº­p</Link>
+              <a
+                href="#pricing"
+                onClick={(e) => handleAnchorClick(e, '#pricing')}
+                className="hover:text-foreground transition-colors w-fit cursor-pointer"
+              >
+                Bảng giá
+              </a>
+              <a
+                href="#demo"
+                onClick={(e) => handleAnchorClick(e, '#demo')}
+                className="hover:text-foreground transition-colors w-fit cursor-pointer"
+              >
+                Demo
+              </a>
+              <a
+                href="#faq"
+                onClick={(e) => handleAnchorClick(e, '#faq')}
+                className="hover:text-foreground transition-colors w-fit cursor-pointer"
+              >
+                FAQ
+              </a>
+              <Link to={ROUTES.LOGIN} className="hover:text-foreground transition-colors w-fit">Đăng nhập</Link>
             </div>
           </div>
 
-          {/* Legal placeholders */}
+          {/* Legal links */}
           <div>
-            <h4 className="text-sm font-medium text-foreground mb-3">PhÃ¡p lÃ½</h4>
+            <h4 className="text-sm font-medium text-foreground mb-3">Pháp lý</h4>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <span className="cursor-default opacity-60">Äiá»u khoáº£n sá»­ dá»¥ng</span>
-              <span className="cursor-default opacity-60">ChÃ­nh sÃ¡ch báº£o máº­t</span>
-              <span className="cursor-default opacity-60">LiÃªn há»‡: support@Viprosell.com</span>
+              <Link to={ROUTES.TERMS} className="hover:text-foreground transition-colors w-fit">
+                Điều khoản sử dụng
+              </Link>
+              <Link to={ROUTES.PRIVACY} className="hover:text-foreground transition-colors w-fit">
+                Chính sách bảo mật
+              </Link>
+              <a href="mailto:support@viprosell.com" className="hover:text-foreground transition-colors w-fit">
+                Liên hệ: support@viprosell.com
+              </a>
             </div>
           </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
-            Â© 2026 Viprosell. All rights reserved.
+            © 2026 Viprosell. All rights reserved.
           </p>
         </div>
       </div>
