@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Admin Control Plane
+/**
+ * Viprosell — Admin Control Plane
  * Full policy center: toggles, service URLs, health checks,
  * failed job logs, prompt registry, contradiction validation, audit trail.
  */
@@ -37,8 +37,8 @@ function PolicyTab() {
   const [saving, setSaving] = useState(false);
   const [showExtended, setShowExtended] = useState(false);
   const [urlDrafts, setUrlDrafts] = useState({
-    LOCAL_LLM_URL: '',
-    LOCAL_RENDER_WORKER_URL: '',
+    LOCALLLMURL: '',
+    LOCALRENDERWORKERURL: '',
     LOCAL_TTS_URL: '',
   });
   const [urlDirty, setUrlDirty] = useState(false);
@@ -46,8 +46,8 @@ function PolicyTab() {
   useEffect(() => {
     setErrors(validateSettings(settings));
     setUrlDrafts({
-      LOCAL_LLM_URL: settings.LOCAL_LLM_URL,
-      LOCAL_RENDER_WORKER_URL: settings.LOCAL_RENDER_WORKER_URL,
+      LOCALLLMURL: settings.LOCALLLMURL,
+      LOCALRENDERWORKERURL: settings.LOCALRENDERWORKERURL,
       LOCAL_TTS_URL: settings.LOCAL_TTS_URL,
     });
   }, [settings]);
@@ -57,9 +57,9 @@ function PolicyTab() {
     try {
       await updateSettings({ [key]: value } as any);
       await refreshSettings();
-      toast({ title: 'ÄÃ£ cáº­p nháº­t', description: `${key} = ${value}` });
+      toast({ title: 'Đã cập nhật', description: `${key} = ${value}` });
     } catch {
-      toast({ title: 'Lá»—i cáº­p nháº­t', variant: 'destructive' });
+      toast({ title: 'Lỗi cập nhật', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -71,9 +71,9 @@ function PolicyTab() {
       await updateSettings(urlDrafts as any);
       await refreshSettings();
       setUrlDirty(false);
-      toast({ title: 'URLs Ä‘Ã£ lÆ°u' });
+      toast({ title: 'URLs đã lưu' });
     } catch {
-      toast({ title: 'Lá»—i lÆ°u URLs', variant: 'destructive' });
+      toast({ title: 'Lỗi lưu URLs', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -84,9 +84,9 @@ function PolicyTab() {
     try {
       await updateSettings({ [key]: value } as any);
       await refreshSettings();
-      toast({ title: 'ÄÃ£ cáº­p nháº­t', description: `${key} = ${value}` });
+      toast({ title: 'Đã cập nhật', description: `${key} = ${value}` });
     } catch {
-      toast({ title: 'Lá»—i cáº­p nháº­t', variant: 'destructive' });
+      toast({ title: 'Lỗi cập nhật', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -97,41 +97,41 @@ function PolicyTab() {
     setUrlDirty(true);
   }
 
-  if (isLoading) return <div className="animate-pulse text-muted-foreground p-4">Äang táº£i...</div>;
+  if (isLoading) return <div className="animate-pulse text-muted-foreground p-4">Đang tải...</div>;
 
   const coreToggles = [
     {
-      key: 'LOCAL_ONLY_MODE',
+      key: 'LOCALONLYMODE',
       label: 'Local Only Mode',
-      desc: 'Chá»‰ dÃ¹ng local services. Táº¯t táº¥t cáº£ cloud/external APIs.',
-      value: settings.LOCAL_ONLY_MODE,
-      icon: settings.LOCAL_ONLY_MODE ? WifiOff : Wifi,
-      warn: settings.LOCAL_ONLY_MODE,
-      info: 'Báº­t sáº½ tá»± Ä‘á»™ng táº¯t ALLOW_EXTERNAL_AI_APIS, PREMIUM_RENDER_ENABLED, CLOUD_FALLBACK_ENABLED',
+      desc: 'Chỉ dùng local services. Tắt tất cả cloud/external APIs.',
+      value: settings.LOCALONLYMODE,
+      icon: settings.LOCALONLYMODE ? WifiOff : Wifi,
+      warn: settings.LOCALONLYMODE,
+      info: 'Bật sẽ tự động tắt ALLOWEXTERNALAIAPIS, PREMIUMRENDERENABLED, CLOUDFALLBACKENABLED',
     },
     {
-      key: 'ALLOW_EXTERNAL_AI_APIS',
+      key: 'ALLOWEXTERNALAIAPIS',
       label: 'Allow External AI APIs',
-      desc: 'Cho phÃ©p gá»i external AI providers (OpenAI, Gemini, etc.)',
-      value: settings.ALLOW_EXTERNAL_AI_APIS,
+      desc: 'Cho phép gọi external AI providers (OpenAI, Gemini, etc.)',
+      value: settings.ALLOWEXTERNALAIAPIS,
       icon: Zap,
-      disabled: settings.LOCAL_ONLY_MODE,
+      disabled: settings.LOCALONLYMODE,
     },
     {
-      key: 'CLOUD_FALLBACK_ENABLED',
+      key: 'CLOUDFALLBACKENABLED',
       label: 'Cloud Fallback',
-      desc: 'Khi local fail, tá»± Ä‘á»™ng fallback sang cloud provider.',
-      value: settings.CLOUD_FALLBACK_ENABLED,
+      desc: 'Khi local fail, tự động fallback sang cloud provider.',
+      value: settings.CLOUDFALLBACKENABLED,
       icon: Activity,
-      disabled: settings.LOCAL_ONLY_MODE,
+      disabled: settings.LOCALONLYMODE,
     },
     {
-      key: 'PREMIUM_RENDER_ENABLED',
+      key: 'PREMIUMRENDERENABLED',
       label: 'Premium Cloud Render',
-      desc: 'Cho phÃ©p user chá»n premium cloud render (tá»‘n thÃªm credit).',
-      value: settings.PREMIUM_RENDER_ENABLED,
+      desc: 'Cho phép user chọn premium cloud render (tốn thêm credit).',
+      value: settings.PREMIUMRENDERENABLED,
       icon: Shield,
-      disabled: settings.LOCAL_ONLY_MODE,
+      disabled: settings.LOCALONLYMODE,
     },
   ];
 
@@ -139,35 +139,35 @@ function PolicyTab() {
     {
       key: 'AI_JSON_REPAIR_ENABLED',
       label: 'AI JSON Repair',
-      desc: 'Tá»± Ä‘á»™ng sá»­a JSON output lá»—i tá»« AI. Táº¯t sáº½ giáº£m Ä‘á»™ bá»n pipeline.',
+      desc: 'Tự động sửa JSON output lỗi từ AI. Tắt sẽ giảm độ bền pipeline.',
       value: settings.AI_JSON_REPAIR_ENABLED,
       icon: Zap,
     },
     {
       key: 'AI_LOG_RAW_OUTPUT',
       label: 'Log Raw AI Output',
-      desc: 'LÆ°u raw AI response vÃ o usage_logs.meta Ä‘á»ƒ debug.',
+      desc: 'Lưu raw AI response vào usage_logs.meta để debug.',
       value: settings.AI_LOG_RAW_OUTPUT,
       icon: FileText,
     },
     {
       key: 'PROMPT_VERSION_PINNING',
       label: 'Prompt Version Pinning',
-      desc: 'Ghim phiÃªn báº£n prompt. Táº¯t cÃ³ thá»ƒ gÃ¢y prompt drift.',
+      desc: 'Ghim phiên bản prompt. Tắt có thể gây prompt drift.',
       value: settings.PROMPT_VERSION_PINNING,
       icon: Lock,
     },
     {
       key: 'TRACE_LOG_ENABLED',
       label: 'Trace Logging',
-      desc: 'Ghi trace_id vÃ o táº¥t cáº£ usage_logs cho observability.',
+      desc: 'Ghi trace_id vào tất cả usage_logs cho observability.',
       value: settings.TRACE_LOG_ENABLED,
       icon: Layers,
     },
     {
       key: 'SAFE_MODE_ON_LOCAL_FAILURE',
       label: 'Safe Mode on Local Failure',
-      desc: 'Khi local service crash, tá»± block request thay vÃ¬ retry vÃ´ háº¡n.',
+      desc: 'Khi local service crash, tự block request thay vì retry vô hạn.',
       value: settings.SAFE_MODE_ON_LOCAL_FAILURE,
       icon: Shield,
     },
@@ -184,10 +184,10 @@ function PolicyTab() {
               <span className="text-sm font-medium text-destructive">Contradiction Detected ({errors.length})</span>
             </div>
             {errors.map((err, i) => (
-              <p key={i} className="text-xs text-destructive/80 pl-6">â€¢ {err}</p>
+              <p key={i} className="text-xs text-destructive/80 pl-6">• {err}</p>
             ))}
             <p className="text-xs text-muted-foreground pl-6 italic">
-              Backend sáº½ reject cÃ¡c request vi pháº¡m policy â€” UI hiding khÃ´ng Ä‘á»§.
+              Backend sẽ reject các request vi phạm policy — UI hiding không đủ.
             </p>
           </CardContent>
         </Card>
@@ -199,7 +199,7 @@ function PolicyTab() {
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" /> Core Policy
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Enforced server-side qua admin-settings edge function. Má»—i thay Ä‘á»•i ghi audit log.</p>
+          <p className="text-xs text-muted-foreground">Enforced server-side qua admin-settings edge function. Mỗi thay đổi ghi audit log.</p>
         </CardHeader>
         <CardContent className="space-y-1">
           {coreToggles.map((t) => {
@@ -212,7 +212,7 @@ function PolicyTab() {
                     <Label className="text-sm text-foreground font-medium">{t.label}</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">{t.desc}</p>
                     {t.disabled && (
-                      <p className="text-xs text-warning mt-1 flex items-center gap-1"><Lock className="h-3 w-3" /> Bá»‹ khÃ³a bá»Ÿi LOCAL_ONLY_MODE</p>
+                      <p className="text-xs text-warning mt-1 flex items-center gap-1"><Lock className="h-3 w-3" /> Bị khóa bởi LOCALONLYMODE</p>
                     )}
                     {t.info && t.value && (
                       <p className="text-xs text-primary/70 mt-1 italic">{t.info}</p>
@@ -238,14 +238,14 @@ function PolicyTab() {
           </CardTitle>
           {urlDirty && (
             <Button size="sm" onClick={handleSaveUrls} disabled={saving} className="gap-1.5 text-xs">
-              <Save className="h-3 w-3" /> LÆ°u URLs
+              <Save className="h-3 w-3" /> Lưu URLs
             </Button>
           )}
         </CardHeader>
         <CardContent className="space-y-4">
           {[
-            { key: 'LOCAL_LLM_URL', label: 'LOCAL_LLM_URL', placeholder: 'http://localhost:11434' },
-            { key: 'LOCAL_RENDER_WORKER_URL', label: 'LOCAL_RENDER_WORKER_URL', placeholder: 'http://localhost:5001' },
+            { key: 'LOCALLLMURL', label: 'LOCALLLMURL', placeholder: 'http://localhost:11434' },
+            { key: 'LOCALRENDERWORKERURL', label: 'LOCALRENDERWORKERURL', placeholder: 'http://localhost:5001' },
             { key: 'LOCAL_TTS_URL', label: 'LOCAL_TTS_URL', placeholder: 'http://localhost:5002' },
           ].map(field => (
             <div key={field.key} className="space-y-1.5">
@@ -269,8 +269,8 @@ function PolicyTab() {
         <CardContent>
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">DEFAULT_TTS_MODE</Label>
-              <Select value={settings.DEFAULT_TTS_MODE} onValueChange={(v) => handleDefaultChange('DEFAULT_TTS_MODE', v)}>
+              <Label className="text-xs text-muted-foreground">DEFAULTTTSMODE</Label>
+              <Select value={settings.DEFAULTTTSMODE} onValueChange={(v) => handleDefaultChange('DEFAULTTTSMODE', v)}>
                 <SelectTrigger className="bg-secondary text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="local">local</SelectItem>
@@ -409,8 +409,8 @@ function HealthTab() {
   }
 
   const services = [
-    { name: 'local_llm', url: settings.LOCAL_LLM_URL, label: 'Local LLM', icon: Zap },
-    { name: 'local_render', url: settings.LOCAL_RENDER_WORKER_URL, label: 'Local Render Worker', icon: Server },
+    { name: 'local_llm', url: settings.LOCALLLMURL, label: 'Local LLM', icon: Zap },
+    { name: 'local_render', url: settings.LOCALRENDERWORKERURL, label: 'Local Render Worker', icon: Server },
     { name: 'local_tts', url: settings.LOCAL_TTS_URL, label: 'Local TTS', icon: Volume2 },
   ];
 
@@ -469,9 +469,9 @@ function HealthTab() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-sm text-muted-foreground animate-pulse">Äang táº£i...</div>
+            <div className="text-sm text-muted-foreground animate-pulse">Đang tải...</div>
           ) : healthLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">ChÆ°a cÃ³ health check nÃ o</p>
+            <p className="text-sm text-muted-foreground">Chưa có health check nào</p>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {healthLogs.map((log) => (
@@ -517,7 +517,7 @@ function PromptsTab() {
 
   async function handleCreate() {
     if (!form.category || !form.name || !form.content) {
-      toast({ title: 'Äiá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin', variant: 'destructive' });
+      toast({ title: 'Điền đầy đủ thông tin', variant: 'destructive' });
       return;
     }
     const { error } = await AdminService.upsertPrompt({
@@ -527,9 +527,9 @@ function PromptsTab() {
       package_type: form.package_type || null,
     });
     if (error) {
-      toast({ title: 'Lá»—i táº¡o prompt', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi tạo prompt', description: error, variant: 'destructive' });
     } else {
-      toast({ title: 'Prompt Ä‘Ã£ táº¡o' });
+      toast({ title: 'Prompt đã tạo' });
       setForm({ category: '', name: '', content: '', package_type: '' });
       setShowForm(false);
       await loadPrompts();
@@ -547,9 +547,9 @@ function PromptsTab() {
       version: (prompt.version || 1) + 1,
     });
     if (error) {
-      toast({ title: 'Lá»—i táº¡o version', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi tạo version', description: error, variant: 'destructive' });
     } else {
-      toast({ title: `Prompt v${(prompt.version || 1) + 1} Ä‘Ã£ táº¡o` });
+      toast({ title: `Prompt v${(prompt.version || 1) + 1} đã tạo` });
       setEditingId(null);
       setEditContent('');
       await loadPrompts();
@@ -558,7 +558,7 @@ function PromptsTab() {
 
   async function toggleActive(id: string, current: boolean) {
     const { error } = await AdminService.togglePrompt(id, !current);
-    if (error) toast({ title: 'Lá»—i', description: error, variant: 'destructive' });
+    if (error) toast({ title: 'Lỗi', description: error, variant: 'destructive' });
     else await loadPrompts();
   }
 
@@ -569,10 +569,10 @@ function PromptsTab() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-medium text-foreground">Prompt Registry ({prompts.length})</h3>
-          <p className="text-xs text-muted-foreground">Quáº£n lÃ½ prompt templates. Táº¡o version má»›i thay vÃ¬ edit trá»±c tiáº¿p.</p>
+          <p className="text-xs text-muted-foreground">Quản lý prompt templates. Tạo version mới thay vì edit trực tiếp.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)} variant="outline" className="text-xs">
-          {showForm ? 'ÄÃ³ng' : '+ ThÃªm prompt'}
+          {showForm ? 'Đóng' : '+ Thêm prompt'}
         </Button>
       </div>
 
@@ -583,7 +583,7 @@ function PromptsTab() {
               <div className="space-y-1">
                 <Label className="text-xs">Category</Label>
                 <Select value={form.category} onValueChange={(v) => setForm(f => ({ ...f, category: v }))}>
-                  <SelectTrigger className="bg-secondary text-sm"><SelectValue placeholder="Chá»n category" /></SelectTrigger>
+                  <SelectTrigger className="bg-secondary text-sm"><SelectValue placeholder="Chọn category" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="system">system</SelectItem>
                     <SelectItem value="product_intel">product_intel</SelectItem>
@@ -599,9 +599,9 @@ function PromptsTab() {
                 <Select value={form.package_type} onValueChange={(v) => setForm(f => ({ ...f, package_type: v }))}>
                   <SelectTrigger className="bg-secondary text-sm"><SelectValue placeholder="All packages" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="quick_ads">quick_ads</SelectItem>
-                    <SelectItem value="review_video">review_video</SelectItem>
-                    <SelectItem value="conversion_video">conversion_video</SelectItem>
+                    <SelectItem value="quickads">quickads</SelectItem>
+                    <SelectItem value="reviewvideo">reviewvideo</SelectItem>
+                    <SelectItem value="conversionvideo">conversionvideo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -615,18 +615,18 @@ function PromptsTab() {
               <Textarea value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))} className="bg-secondary text-sm min-h-[120px] font-mono" placeholder="Prompt content..." />
             </div>
             <Button onClick={handleCreate} size="sm" className="gap-1">
-              <FileText className="h-3 w-3" /> Táº¡o prompt
+              <FileText className="h-3 w-3" /> Tạo prompt
             </Button>
           </CardContent>
         </Card>
       )}
 
       {loading ? (
-        <div className="animate-pulse text-muted-foreground text-sm">Äang táº£i...</div>
+        <div className="animate-pulse text-muted-foreground text-sm">Đang tải...</div>
       ) : prompts.length === 0 ? (
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            ChÆ°a cÃ³ prompt nÃ o. Táº¡o prompt Ä‘áº§u tiÃªn.
+            Chưa có prompt nào. Tạo prompt đầu tiên.
           </CardContent>
         </Card>
       ) : (
@@ -675,10 +675,10 @@ function PromptsTab() {
                       />
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleNewVersion(p)} className="gap-1 text-xs">
-                          <Save className="h-3 w-3" /> Táº¡o v{(p.version || 1) + 1}
+                          <Save className="h-3 w-3" /> Tạo v{(p.version || 1) + 1}
                         </Button>
                         <p className="text-xs text-muted-foreground self-center">
-                          Sáº½ táº¡o version má»›i, version cÅ© váº«n giá»¯ nguyÃªn.
+                          Sẽ tạo version mới, version cũ vẫn giữ nguyên.
                         </p>
                       </div>
                     </div>
@@ -724,21 +724,27 @@ function OpsTab() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [auditRes, failedRes, usageRes] = await Promise.all([
-      AdminService.getAuditLogs(50),
-      AdminService.getFailedJobs(30),
-      AdminService.getUsageStats(),
-    ]);
-    setAuditLogs(auditRes.logs);
-    setFailedJobs(failedRes.data?.jobs ?? []);
-    setUsageStats(usageRes.data?.stats ?? null);
-    setRenderSummary(usageRes.data?.render_summary ?? null);
-    setLoading(false);
-  }, []);
+    try {
+      const [auditRes, failedRes, usageRes] = await Promise.all([
+        AdminService.getAuditLogs(50),
+        AdminService.getFailedJobs(30),
+        AdminService.getUsageStats(),
+      ]);
+      setAuditLogs(auditRes.logs);
+      setFailedJobs(failedRes.data?.jobs ?? []);
+      setUsageStats(usageRes.data?.stats ?? null);
+      setRenderSummary(usageRes.data?.render_summary ?? null);
+    } catch (err: any) {
+      console.error('[OpsTab] Failed to load data:', err);
+      toast({ title: 'Lỗi tải dữ liệu', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  if (loading) return <LoadingState message="Äang táº£i ops data..." />;
+  if (loading) return <LoadingState message="Đang tải ops data..." />;
 
   return (
     <div className="space-y-6">
@@ -768,11 +774,11 @@ function OpsTab() {
       {activeOpsTab === 'failed' && (
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">Render jobs cÃ³ status=failed. Error code + message tá»« edge function.</p>
+            <p className="text-xs text-muted-foreground">Render jobs có status=failed. Error code + message từ edge function.</p>
           </CardHeader>
           <CardContent className="p-0">
             {failedJobs.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">KhÃ´ng cÃ³ job tháº¥t báº¡i ðŸŽ‰</div>
+              <div className="py-8 text-center text-muted-foreground text-sm">Không có job thất bại 🎉</div>
             ) : (
               <div className="max-h-[500px] overflow-y-auto divide-y divide-border/20">
                 {failedJobs.map((job: any) => (
@@ -810,11 +816,11 @@ function OpsTab() {
       {activeOpsTab === 'audit' && (
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">Má»—i setting change, health check, prompt update Ä‘á»u ghi audit log.</p>
+            <p className="text-xs text-muted-foreground">Mỗi setting change, health check, prompt update đều ghi audit log.</p>
           </CardHeader>
           <CardContent className="p-0">
             {auditLogs.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">ChÆ°a cÃ³ audit log</div>
+              <div className="py-8 text-center text-muted-foreground text-sm">Chưa có audit log</div>
             ) : (
               <div className="max-h-[500px] overflow-y-auto divide-y divide-border/20">
                 {auditLogs.map((log) => (
@@ -874,7 +880,7 @@ function OpsTab() {
             </CardHeader>
             <CardContent>
               {!usageStats ? (
-                <p className="text-sm text-muted-foreground">KhÃ´ng cÃ³ dá»¯ liá»‡u</p>
+                <p className="text-sm text-muted-foreground">Không có dữ liệu</p>
               ) : (
                 <div className="space-y-1">
                   {/* Header */}
@@ -899,7 +905,7 @@ function OpsTab() {
                         {stats.failures}
                       </span>
                       <span className="text-right text-muted-foreground">
-                        {stats.avg_latency_ms !== null ? `${stats.avg_latency_ms}ms` : 'â€”'}
+                        {stats.avg_latency_ms !== null ? `${stats.avg_latency_ms}ms` : '—'}
                       </span>
                     </div>
                   ))}
@@ -922,7 +928,7 @@ const AdminSettings = () => {
         <Settings className="w-6 h-6 text-primary" />
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Admin Control Plane</h1>
-          <p className="text-xs text-muted-foreground">Backend enforcement is mandatory â€” UI hiding alone is not sufficient.</p>
+          <p className="text-xs text-muted-foreground">Backend enforcement is mandatory — UI hiding alone is not sufficient.</p>
         </div>
       </div>
 

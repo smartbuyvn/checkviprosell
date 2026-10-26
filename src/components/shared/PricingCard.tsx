@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Pricing Card
+ * Viprosell — Pricing Card
  */
 import { Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ interface PricingCardProps {
 }
 
 export function PricingCard({
-  name, price, period, description, features, ctaLabel = 'Báº¯t Ä‘áº§u', onCta, featured, showPaymentBadges = true, className
+  name, price, period, description, features, ctaLabel = 'Bắt đầu', onCta, featured, showPaymentBadges = true, className
 }: PricingCardProps) {
   return (
     <div className={cn(
@@ -32,7 +32,7 @@ export function PricingCard({
     )}>
       {featured && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-0.5 bg-primary text-primary-foreground text-xs font-semibold rounded-full whitespace-nowrap">
-          Phá»• biáº¿n nháº¥t
+          Phổ biến nhất
         </div>
       )}
       <div className="mb-4">

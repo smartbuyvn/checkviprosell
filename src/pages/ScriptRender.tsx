@@ -1,5 +1,5 @@
 /**
- * Viprosell â€” Script Workspace (Split-pane layout)
+ * Viprosell — Script Workspace (Split-pane layout)
  * Left: script text, scene cards, overlays, captions, hashtags, thumbnail
  * Right: preview placeholder, render status, retry, export
  */
@@ -29,9 +29,9 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 
 const PACKAGE_LABELS: Record<string, string> = {
-  quick_ads: 'Quick Ads',
-  review_video: 'Review Video',
-  conversion_video: 'Conversion Video',
+  quickads: 'Quick Ads',
+  reviewvideo: 'Review Video',
+  conversionvideo: 'Conversion Video',
 };
 
 const OVERLAY_STYLE_COLORS: Record<string, string> = {
@@ -42,11 +42,12 @@ const OVERLAY_STYLE_COLORS: Record<string, string> = {
 };
 
 const RENDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  queued: { label: 'Äang chá»', color: 'bg-warning/20 text-warning' },
-  processing: { label: 'Äang render', color: 'bg-info/20 text-info' },
-  completed: { label: 'HoÃ n thÃ nh', color: 'bg-primary/20 text-primary' },
-  failed: { label: 'Tháº¥t báº¡i', color: 'bg-destructive/20 text-destructive' },
-  cancelled: { label: 'ÄÃ£ huá»·', color: 'bg-muted text-muted-foreground' },
+  pending: { label: 'Đang chờ', color: 'bg-warning/20 text-warning' },
+  queued: { label: 'Đang chờ', color: 'bg-warning/20 text-warning' },
+  processing: { label: 'Đang render', color: 'bg-info/20 text-info' },
+  completed: { label: 'Hoàn thành', color: 'bg-primary/20 text-primary' },
+  failed: { label: 'Thất bại', color: 'bg-destructive/20 text-destructive' },
+  cancelled: { label: 'Đã huỷ', color: 'bg-muted text-muted-foreground' },
 };
 
 function CopyButton({ text, label }: { text: string; label?: string }) {
@@ -59,7 +60,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   return (
     <Button variant="ghost" size="sm" onClick={handleCopy} className="gap-1.5 text-xs text-muted-foreground hover:text-foreground h-7 px-2">
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {label || (copied ? 'ÄÃ£ copy' : 'Copy')}
+      {label || (copied ? 'Đã copy' : 'Copy')}
     </Button>
   );
 }
@@ -86,7 +87,7 @@ const ScriptRender = () => {
   const [latestRender, setLatestRender] = useState<RenderJob | null>(null);
   const [renderHistory, setRenderHistory] = useState<RenderJob[]>([]);
 
-  // Preview State
+  // Preview state
   const [previewAspect, setPreviewAspect] = useState<'9:16' | '16:9' | '1:1'>('9:16');
   const [showSafeZone, setShowSafeZone] = useState(true);
 
@@ -103,7 +104,7 @@ const ScriptRender = () => {
         RenderService.getByProject(projectId),
       ]);
       if (projRes.error || !projRes.project) {
-        setError('KhÃ´ng tÃ¬m tháº¥y dá»± Ã¡n');
+        setError('Không tìm thấy dự án');
         return;
       }
       setProject(projRes.project);
@@ -113,7 +114,7 @@ const ScriptRender = () => {
       setRenderHistory(renderRes.renders);
       setLatestRender(renderRes.renders[0] || null);
 
-      if (projRes.project.status === 'concept_ready' && !scriptRes.script && !hasAutoTriggered.current) {
+      if (projRes.project.status === 'conceptready' && !scriptRes.script && !hasAutoTriggered.current) {
         hasAutoTriggered.current = true;
         handleGenerate();
       }
@@ -129,27 +130,57 @@ const ScriptRender = () => {
     setGenerating(true);
     setError(null);
     try {
-      const res = await ScriptService.generate(projectId);
-      if (res.error) {
+      // Ensure package_type is sent without underscores for backend API
+      const apiPackageType = (project.package_type || 'quick_ads').replace('_', '');
+      const res = await ScriptService.generate(projectId, apiPackageType);
+      
+      if (res.error && !res.jobId) {
         setError(res.error);
-        toast({ title: 'Lá»—i táº¡o script', description: res.error, variant: 'destructive' });
+        toast({ title: 'Lỗi tạo script', description: res.error, variant: 'destructive' });
+        setGenerating(false);
         return;
       }
-      toast({ title: 'Script Ä‘Ã£ táº¡o xong!' });
-      await loadData();
+
+      if (res.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60; // 120 seconds
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
+          
+          const jobStatus = await ScriptService.pollJobStatus(res.jobId);
+          if (jobStatus.status === 'completed') {
+            toast({ title: 'Script đã tạo xong!' });
+            await loadData();
+            return;
+          } else if (jobStatus.status === 'failed') {
+            setError(jobStatus.error || 'Lỗi khi tạo script');
+            toast({ title: 'Lỗi tạo script', description: jobStatus.error || 'AI xử lý thất bại', variant: 'destructive' });
+            setGenerating(false);
+            return;
+          }
+        }
+        
+        setError('Hệ thống bị quá tải. Vui lòng tải lại trang.');
+        toast({ title: 'Timeout', description: 'Quá thời gian chờ AI', variant: 'destructive' });
+        setGenerating(false);
+      } else {
+        toast({ title: 'Script đã tạo xong!' });
+        await loadData();
+      }
     } catch {
-      setError('CÃ³ lá»—i xáº£y ra khi táº¡o script');
-    } finally {
+      setError('Có lỗi xảy ra khi tạo script');
       setGenerating(false);
     }
   }
 
-  async function handleRender(mode: 'draft_local' | 'draft_local_tts' = 'draft_local') {
+  async function handleRender(mode: 'draft_local' | 'draftlocaltts' = 'draft_local') {
     if (!projectId || !script) return;
 
-    // LOCAL_ONLY_MODE enforcement: block premium_cloud on client side
-    if (mode === 'premium_cloud' as string && settings.LOCAL_ONLY_MODE) {
-      toast({ title: 'Cháº¿ Ä‘á»™ local-only', description: 'KhÃ´ng thá»ƒ dÃ¹ng cloud render khi LOCAL_ONLY_MODE=true.', variant: 'destructive' });
+    // LOCALONLYMODE enforcement: block premiumcloud on client side
+    if (mode === 'premiumcloud' as string && settings.LOCALONLYMODE) {
+      toast({ title: 'Chế độ local-only', description: 'Không thể dùng cloud render khi LOCALONLYMODE=true.', variant: 'destructive' });
       return;
     }
 
@@ -157,63 +188,64 @@ const ScriptRender = () => {
     setRenderProgress(0);
 
     try {
-      const { assets: projectAssets } = await AssetService.getByProject(projectId);
-      // Include both images and videos â€” prioritise videos for richer output
-      const assetEntries = projectAssets
-        .filter((a: any) => a.asset_type === 'image' || a.asset_type === 'video')
-        .sort((a: any, b: any) => {
-          // Videos first, then by sort_order
-          if (a.asset_type === 'video' && b.asset_type !== 'video') return -1;
-          if (a.asset_type !== 'video' && b.asset_type === 'video') return 1;
-          return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-        })
-        .map((a: any) => ({ url: a.file_url, type: a.asset_type as 'image' | 'video' }));
-
-      const sceneCards = Array.isArray(script.scene_cards) ? script.scene_cards : [];
-      const overlayList = visualPack?.overlay_list && Array.isArray(visualPack.overlay_list)
-        ? visualPack.overlay_list : [];
-
-      const result = await RenderService.executeLocalRender(
-        projectId,
-        mode,
-        {
-          width: 1080, height: 1920, fps: 15,
-          scenes: sceneCards, overlays: overlayList,
-          subtitleText: visualPack?.subtitle_text || '',
-          ctaText: script.cta || 'Mua ngay!',
-          assets: assetEntries,
-          productName: project?.title || 'Viprosell',
-          ttsMode: mode === 'draft_local_tts' ? 'local' : 'none',
-        },
-        (pct) => setRenderProgress(pct),
-      );
-
-      if (!result.success) {
-        // Explicit fail messaging when local fails and cloud fallback is off
-        const fallbackMsg = !settings.CLOUD_FALLBACK_ENABLED
-          ? ' Cloud fallback Ä‘ang táº¯t â€” chá»‰ cÃ³ thá»ƒ retry local.'
-          : '';
-        toast({ title: 'Render tháº¥t báº¡i', description: (result.error || 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh') + fallbackMsg, variant: 'destructive' });
-      } else {
-        toast({ title: 'Video Ä‘Ã£ render xong!' });
+      // 1. Create the job on the backend (this enqueues to BullMQ worker)
+      const res = await RenderService.createJob(projectId, mode, script);
+      if (res.error) {
+        throw new Error(res.error);
       }
-      await loadData();
+
+      toast({ title: 'Đã gửi lệnh Render', description: 'Hệ thống (Worker) đang xử lý video của bạn trong nền.' });
+      
+      // 2. We don't render locally anymore, we just wait for the worker to finish
+      // The UI will update via Realtime or regular polling in a real app,
+      // here we just trigger loadData periodically or let the user click Refresh.
+      
+      // Polling loop for demo purposes (every 3s for max 2 minutes)
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        await loadData(); // This updates latestRender state
+        
+        // Inside loadData, if latestRender.status is 'completed' or 'failed', we can clear interval.
+        // We do this by checking the new state in the next render cycle, or by checking the fetch result directly.
+        const { render } = await RenderService.getLatest(projectId);
+        
+        if (render) {
+          if (render.status === 'processing' || render.status === 'pending') {
+            // Fake progress just to show it's working
+            setRenderProgress((prev) => Math.min(prev + 5, 95));
+          } else if (render.status === 'completed' || render.status === 'failed' || render.status === 'retryable_failed') {
+            clearInterval(pollInterval);
+            setRendering(false);
+            setRenderProgress(100);
+            if (render.status === 'completed') {
+              toast({ title: 'Render hoàn tất!', description: 'Video của bạn đã sẵn sàng.' });
+            } else {
+              toast({ title: 'Render thất bại', description: render.error_message || 'Có lỗi xảy ra', variant: 'destructive' });
+            }
+          }
+        }
+        
+        if (attempts > 40) { // 2 mins max
+          clearInterval(pollInterval);
+          setRendering(false);
+        }
+      }, 3000);
+
     } catch (err: any) {
-      toast({ title: 'Lá»—i render', description: err.message, variant: 'destructive' });
-    } finally {
+      toast({ title: 'Lỗi gửi lệnh render', description: err.message, variant: 'destructive' });
       setRendering(false);
-      setRenderProgress(0);
     }
   }
 
-  if (loading) return <LoadingState message="Äang táº£i script workspace..." />;
+  if (loading) return <LoadingState message="Đang tải script workspace..." />;
   if (error && !script) {
     return (
       <div className="max-w-4xl mx-auto p-4 md:p-6">
         <ErrorState
-          title="KhÃ´ng thá»ƒ táº£i script"
+          title="Không thể tải script"
           message={error}
-          onRetry={project?.status === 'concept_ready' ? handleGenerate : loadData}
+          onRetry={project?.status === 'conceptready' ? handleGenerate : loadData}
         />
       </div>
     );
@@ -226,8 +258,8 @@ const ScriptRender = () => {
           <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">Äang táº¡o script...</h3>
-              <p className="text-sm text-muted-foreground">AI Ä‘ang viáº¿t script, scene cards, overlays vÃ  caption</p>
+              <h3 className="text-lg font-semibold text-foreground">Đang tạo script...</h3>
+              <p className="text-sm text-muted-foreground">AI đang viết script, scene cards, overlays và caption</p>
               <Badge variant="outline" className="mt-2">{PACKAGE_LABELS[project?.package_type] || project?.package_type}</Badge>
             </div>
           </CardContent>
@@ -243,11 +275,11 @@ const ScriptRender = () => {
           <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
             <FileText className="h-10 w-10 text-muted-foreground" />
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">ChÆ°a cÃ³ script</h3>
-              <p className="text-sm text-muted-foreground">HÃ£y chá»n concept trÆ°á»›c khi táº¡o script</p>
+              <h3 className="text-lg font-semibold text-foreground">Chưa có script</h3>
+              <p className="text-sm text-muted-foreground">Hãy chọn concept trước khi tạo script</p>
             </div>
             <Button onClick={() => navigate(`/projects/${projectId}/concepts`)} className="mt-2">
-              Chá»n Concept <ChevronRight className="h-4 w-4 ml-1" />
+              Chọn Concept <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </CardContent>
         </Card>
@@ -257,7 +289,7 @@ const ScriptRender = () => {
 
   const sceneCards = Array.isArray(script.scene_cards) ? script.scene_cards : [];
   const overlayList = visualPack?.overlay_list && Array.isArray(visualPack.overlay_list) ? visualPack.overlay_list : [];
-  const showPremium = settings.PREMIUM_RENDER_ENABLED && !settings.LOCAL_ONLY_MODE;
+  const showPremium = settings.PREMIUMRENDERENABLED && !settings.LOCALONLYMODE;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
@@ -279,7 +311,7 @@ const ScriptRender = () => {
             <ChevronLeft className="h-3.5 w-3.5" /> Concepts
           </Button>
           <Button size="sm" variant="outline" onClick={handleGenerate} disabled={generating || rendering} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" /> Táº¡o láº¡i
+            <RefreshCw className="h-3.5 w-3.5" /> Tạo lại
           </Button>
         </div>
       </div>
@@ -325,7 +357,7 @@ const ScriptRender = () => {
                 <Card className="border-border bg-card">
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Type className="h-4 w-4 text-primary" /> Subtitle / Phá»¥ Ä‘á»
+                      <Type className="h-4 w-4 text-primary" /> Subtitle / Phụ đề
                     </CardTitle>
                     <CopyButton text={visualPack.subtitle_text} />
                   </CardHeader>
@@ -358,12 +390,12 @@ const ScriptRender = () => {
                         </div>
                         <div className="space-y-1.5">
                           <div>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">HÃ¬nh áº£nh</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Hình ảnh</span>
                             <p className="text-sm text-foreground/90">{scene.visual_instruction}</p>
                           </div>
                           {scene.voice_line && (
                             <div>
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Lá»i nÃ³i</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Lời nói</span>
                               <p className="text-sm text-foreground/80 italic">"{scene.voice_line}"</p>
                             </div>
                           )}
@@ -379,7 +411,7 @@ const ScriptRender = () => {
             <TabsContent value="overlays" className="space-y-3 mt-4">
               {overlayList.length === 0 ? (
                 <Card className="border-border bg-card">
-                  <CardContent className="py-8 text-center text-muted-foreground text-sm">KhÃ´ng cÃ³ overlay nÃ o</CardContent>
+                  <CardContent className="py-8 text-center text-muted-foreground text-sm">Không có overlay nào</CardContent>
                 </Card>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -390,7 +422,7 @@ const ScriptRender = () => {
                           <Badge className={`text-xs border ${OVERLAY_STYLE_COLORS[overlay.style] || 'bg-secondary text-secondary-foreground'}`}>
                             {overlay.style}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">{overlay.start_sec}s â€“ {overlay.end_sec}s</span>
+                          <span className="text-xs text-muted-foreground">{overlay.start_sec}s – {overlay.end_sec}s</span>
                         </div>
                         <p className="text-sm font-medium text-foreground">{overlay.text}</p>
                       </CardContent>
@@ -459,7 +491,7 @@ const ScriptRender = () => {
                   {captions.short_description && (
                     <Card className="border-border bg-card">
                       <CardHeader className="flex flex-row items-center justify-between pb-3">
-                        <CardTitle className="text-sm">MÃ´ táº£ ngáº¯n</CardTitle>
+                        <CardTitle className="text-sm">Mô tả ngắn</CardTitle>
                         <CopyButton text={captions.short_description} />
                       </CardHeader>
                       <CardContent>
@@ -471,7 +503,7 @@ const ScriptRender = () => {
               ) : (
                 <Card className="border-border bg-card">
                   <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                    ChÆ°a cÃ³ caption. Táº¡o script Ä‘á»ƒ tá»± Ä‘á»™ng sinh caption.
+                    Chưa có caption. Tạo script để tự động sinh caption.
                   </CardContent>
                 </Card>
               )}
@@ -529,7 +561,7 @@ const ScriptRender = () => {
                       <Monitor className="h-10 w-10 text-muted-foreground/40" />
                       <div className="text-center px-4">
                         <p className="text-sm font-medium text-muted-foreground">Preview {previewAspect}</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">Render video Ä‘á»ƒ xem káº¿t quáº£</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Render video để xem kết quả</p>
                       </div>
                     </div>
                   )}
@@ -550,14 +582,14 @@ const ScriptRender = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm text-foreground">Äang render...</span>
+                    <span className="text-sm text-foreground">Đang render...</span>
                     <span className="text-xs text-muted-foreground ml-auto">{renderProgress}%</span>
                   </div>
                   <Progress value={renderProgress} className="h-1.5" />
                   <p className="text-[10px] text-muted-foreground">
-                    {renderProgress < 5 ? 'Khá»Ÿi táº¡o...' :
+                    {renderProgress < 5 ? 'Khởi tạo...' :
                      renderProgress < 85 ? 'Composing scenes + overlays...' :
-                     renderProgress < 95 ? 'Uploading...' : 'HoÃ n táº¥t...'}
+                     renderProgress < 95 ? 'Uploading...' : 'Hoàn tất...'}
                   </p>
                 </div>
               ) : (
@@ -565,7 +597,7 @@ const ScriptRender = () => {
                   <Button onClick={() => handleRender('draft_local')} className="gap-2 w-full" size="sm">
                     <Film className="h-3.5 w-3.5" /> Render Draft
                   </Button>
-                  <Button onClick={() => handleRender('draft_local_tts')} variant="secondary" className="gap-2 w-full" size="sm">
+                  <Button onClick={() => handleRender('draftlocaltts')} variant="secondary" className="gap-2 w-full" size="sm">
                     <Play className="h-3.5 w-3.5" /> Draft + Voice
                   </Button>
                   {showPremium && (
@@ -583,7 +615,7 @@ const ScriptRender = () => {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Tráº¡ng thÃ¡i</CardTitle>
+                  <CardTitle className="text-sm">Trạng thái</CardTitle>
                   <Badge className={`text-[10px] ${RENDER_STATUS_MAP[latestRender.status]?.color || ''}`}>
                     {RENDER_STATUS_MAP[latestRender.status]?.label || latestRender.status}
                   </Badge>
@@ -594,11 +626,11 @@ const ScriptRender = () => {
                   <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm" className="gap-1.5 flex-1">
                       <a href={latestRender.output_url} download target="_blank" rel="noopener noreferrer">
-                        <Download className="h-3.5 w-3.5" /> Táº£i video
+                        <Download className="h-3.5 w-3.5" /> Tải video
                       </a>
                     </Button>
                     <Button onClick={() => handleRender('draft_local')} variant="ghost" size="sm" className="gap-1.5" disabled={rendering}>
-                      <RefreshCw className="h-3.5 w-3.5" /> Láº¡i
+                      <RefreshCw className="h-3.5 w-3.5" /> Lại
                     </Button>
                   </div>
                 )}
@@ -608,9 +640,9 @@ const ScriptRender = () => {
                     <div className="flex items-start gap-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20">
                       <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-destructive">{latestRender.error_message || 'Render tháº¥t báº¡i'}</p>
+                        <p className="text-xs font-medium text-destructive">{latestRender.error_message || 'Render thất bại'}</p>
                         {latestRender.error_code && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">MÃ£ lá»—i: {latestRender.error_code}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">Mã lỗi: {latestRender.error_code}</p>
                         )}
                         {latestRender.last_fail_reason && (
                           <div className="mt-1 p-1 bg-background/50 rounded border border-border/50">
@@ -622,7 +654,7 @@ const ScriptRender = () => {
                       </div>
                     </div>
                     <Button onClick={() => handleRender('draft_local')} variant="outline" size="sm" className="gap-1.5 w-full" disabled={rendering}>
-                      <RefreshCw className="h-3.5 w-3.5" /> Thá»­ láº¡i (KhÃ´ng tá»‘n credit)
+                      <RefreshCw className="h-3.5 w-3.5" /> Thử lại (Không tốn credit)
                     </Button>
                   </div>
                 )}
@@ -640,7 +672,7 @@ const ScriptRender = () => {
           {renderHistory.length > 1 && (
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Lá»‹ch sá»­ ({renderHistory.length})</CardTitle>
+                <CardTitle className="text-sm">Lịch sử ({renderHistory.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1.5">

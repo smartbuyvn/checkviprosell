@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Status Pill
+/**
+ * Viprosell — Status Pill
  */
 import { cn } from '@/lib/utils';
 
@@ -17,16 +17,16 @@ const statusStyles: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  draft: 'NhÃ¡p',
-  analyzing: 'Äang phÃ¢n tÃ­ch',
-  concept_ready: 'Concept sáºµn sÃ ng',
-  script_ready: 'Script sáºµn sÃ ng',
-  render_queued: 'Chá» render',
-  rendering: 'Äang render',
-  completed: 'HoÃ n thÃ nh',
-  failed: 'Tháº¥t báº¡i',
-  pending: 'Äang chá»',
-  active: 'Hoáº¡t Ä‘á»™ng',
+  draft: 'Nháp',
+  analyzing: 'Đang phân tích',
+  conceptready: 'Concept sẵn sàng',
+  scriptready: 'Script sẵn sàng',
+  renderqueued: 'Chờ render',
+  rendering: 'Đang render',
+  completed: 'Hoàn thành',
+  failed: 'Thất bại',
+  pending: 'Đang chờ',
+  active: 'Hoạt động',
 };
 
 interface StatusPillProps {

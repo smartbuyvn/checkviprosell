@@ -1,11 +1,11 @@
-﻿/**
- * Viprosell â€” Auth Service (Real Supabase)
+/**
+ * Viprosell — Auth Service (Real Supabase)
  * Single source of truth for all auth operations.
  * No component should call supabase.auth directly.
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
+import { getSessionSafe } from '@/lib/errorUtils';
 
 export interface UserProfile {
   id: string;
@@ -13,6 +13,7 @@ export interface UserProfile {
   display_name: string | null;
   avatar_url: string | null;
   affiliate_code: string | null;
+  referred_by: string | null;
 }
 
 export type AppRole = 'guest' | 'user' | 'admin';
@@ -24,21 +25,20 @@ export const AuthService = {
   },
 
   async getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
+    return getSessionSafe(supabase);
   },
 
-  /** Fetch profile â€” single source of truth (no direct DB in hooks) */
+  /** Fetch profile — single source of truth (no direct DB in hooks) */
   async fetchProfile(userId: string): Promise<UserProfile | null> {
     const { data } = await supabase
       .from('profiles')
-      .select('id, email, display_name, avatar_url, affiliate_code')
+      .select('id, email, display_name, avatar_url, affiliate_code, referred_by')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     return data;
   },
 
-  /** Fetch role â€” single source of truth */
+  /** Fetch role — single source of truth */
   async fetchRole(userId: string): Promise<AppRole> {
     const { data } = await supabase
       .from('user_roles')
@@ -88,12 +88,12 @@ export const AuthService = {
   },
 
   async signInWithGoogle() {
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: `${window.location.origin}/auth/callback`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
-    if (result.error) {
-      return { error: result.error instanceof Error ? result.error.message : String(result.error) };
-    }
-    return { error: null };
+    return { error: error?.message ?? null };
   },
 };

@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Usage Log Service (Real Supabase)
+ * Viprosell — Usage Log Service (Real Supabase)
  * Tracks credit usage and step execution for auditing.
  */
 

@@ -1,13 +1,13 @@
 ﻿/**
- * Viprosell â€” Currency formatting utility
+ * Viprosell — Currency formatting utility
  * Single source of truth for displaying prices.
  */
 
 export function formatPrice(amount: number, currency: string = 'VND'): string {
-  if (amount === 0) return 'Miá»…n phÃ­';
+  if (amount === 0) return 'Miễn phí';
 
   if (currency === 'VND') {
-    return new Intl.NumberFormat('vi-VN').format(amount) + 'â‚«';
+    return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
   }
 
   if (currency === 'USD') {

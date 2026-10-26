@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Stat Card for dashboard
+ * Viprosell — Stat Card for dashboard
  */
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';

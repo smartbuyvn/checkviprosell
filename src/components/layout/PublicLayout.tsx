@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Public Layout
+/**
+ * Viprosell — Public Layout
  * Wraps public pages with consistent header + footer.
  * Auth pages use compact=true to reduce visual noise.
  */
@@ -18,9 +18,9 @@ interface PublicLayoutProps {
 
 export function PublicLayout({ children, headerVariant = 'solid', hideFooter = false }: PublicLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <PublicHeader variant={headerVariant} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-14">{children}</main>
       {!hideFooter && <PublicFooter />}
     </div>
   );

@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” OAuth Callback Page
+/**
+ * Viprosell — OAuth Callback Page
  * Handles redirect after Google OAuth sign-in.
  * Session is set automatically by the lovable auth module;
  * this page just waits for onAuthStateChange to fire and redirects.
@@ -20,14 +20,19 @@ const AuthCallback = () => {
       navigate(ROUTES.DASHBOARD, { replace: true });
     }
     if (!isLoading && !isAuthenticated) {
-      // OAuth failed or was cancelled
+      // Check if we are currently processing an OAuth redirect in the hash
+      if (window.location.hash.includes('access_token') || window.location.hash.includes('error=')) {
+        // Wait for Supabase to process it
+        return;
+      }
+      // OAuth failed or was cancelled, and no hash is present
       navigate(ROUTES.LOGIN, { replace: true });
     }
   }, [isLoading, isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <LoadingState message="Äang xÃ¡c thá»±c..." />
+      <LoadingState message="Đang xác thực..." />
     </div>
   );
 };

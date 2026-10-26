@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Error Utilities
+/**
+ * Viprosell — Error Utilities
  * Graceful error handling helpers for Supabase auth lock errors, AbortErrors, etc.
  */
 
@@ -17,28 +17,49 @@ export function isAbortOrLockError(err: unknown): boolean {
 }
 
 /** Get a user-friendly Vietnamese error message from an error */
-export function getUserErrorMessage(err: unknown, fallback = 'ÄÃ£ xáº£y ra lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh'): string {
+export function getUserErrorMessage(err: unknown, fallback = 'Đã xảy ra lỗi không xác định'): string {
   if (!err) return fallback;
   
   if (isAbortOrLockError(err)) {
-    return 'PhiÃªn Ä‘Äƒng nháº­p Ä‘ang Ä‘Æ°á»£c Ä‘á»“ng bá»™. Vui lÃ²ng thá»­ láº¡i.';
+    return 'Phiên đăng nhập đang được đồng bộ. Vui lòng thử lại.';
   }
   
   const msg = err instanceof Error ? err.message : String(err);
   
   // Network errors
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_NETWORK')) {
-    return 'KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server. Vui lÃ²ng kiá»ƒm tra máº¡ng vÃ  thá»­ láº¡i.';
+    return 'Không thể kết nối đến server. Vui lòng kiểm tra mạng và thử lại.';
   }
   
   // Auth errors
   if (msg.includes('JWT expired') || msg.includes('token is expired')) {
-    return 'PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.';
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   }
   
   if (msg.includes('Invalid login credentials')) {
-    return 'Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng.';
+    return 'Email hoặc mật khẩu không đúng.';
   }
 
   return msg || fallback;
+}
+
+/**
+ * Lock-safe wrapper around supabase.auth.getSession().
+ * Catches AbortError / "Lock broken" errors and returns null session
+ * instead of crashing the calling component.
+ * 
+ * Usage: Replace `supabase.auth.getSession()` with `getSessionSafe(supabase)`
+ */
+export async function getSessionSafe(supabase: any): Promise<{ access_token: string } | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  } catch (err) {
+    if (isAbortOrLockError(err)) {
+      console.debug('[Auth] getSession Lock/Abort — returning null session');
+    } else {
+      console.warn('[Auth] getSession failed:', err);
+    }
+    return null;
+  }
 }

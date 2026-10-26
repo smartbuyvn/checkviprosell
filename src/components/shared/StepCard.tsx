@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Step Card for How It Works
+ * Viprosell — Step Card for How It Works
  */
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';

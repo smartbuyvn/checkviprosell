@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Credit Exhaustion Notification Service
+ * Viprosell — Credit Exhaustion Notification Service
  * Triggers notification when a free plan user's credits reach 0.
  * Currently logs the event and stores it for future email provider integration.
  */
@@ -55,9 +55,9 @@ export const CreditNotificationService = {
     ctaLabel: string;
   } {
     return {
-      title: 'Credits Ä‘Ã£ háº¿t',
-      description: 'Báº¡n Ä‘Ã£ sá»­ dá»¥ng háº¿t credits miá»…n phÃ­. NÃ¢ng cáº¥p gÃ³i Ä‘á»ƒ tiáº¿p tá»¥c táº¡o video.',
-      ctaLabel: 'NÃ¢ng cáº¥p ngay',
+      title: 'Credits đã hết',
+      description: 'Bạn đã sử dụng hết credits miễn phí. Nâng cấp gói để tiếp tục tạo video.',
+      ctaLabel: 'Nâng cấp ngay',
     };
   },
 };

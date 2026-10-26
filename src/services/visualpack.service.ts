@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Visual Pack Service (Real Supabase)
+ * Viprosell — Visual Pack Service (Real Supabase)
  * Read-only from client. AI orchestrator creates visual packs.
  */
 

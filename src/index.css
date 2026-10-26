@@ -4,59 +4,63 @@
 @tailwind components;
 @tailwind utilities;
 
+.cache-bust-v3 { display: none; }
+
 @layer base {
   :root {
-    --background: 220 20% 4%;
-    --foreground: 210 20% 96%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --card: 220 18% 8%;
-    --card-foreground: 210 20% 96%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 220 18% 8%;
-    --popover-foreground: 210 20% 96%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 15 100% 61%;
+    --primary: 25 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 14%;
-    --secondary-foreground: 210 15% 85%;
+    --secondary: 222 47% 18%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 12% 12%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 222 47% 20%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 160 70% 38%;
-    --accent-foreground: 220 20% 4%;
+    --accent: 25 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 16%;
-    --input: 220 14% 16%;
-    --ring: 160 84% 44%;
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 25 100% 50%;
 
     --radius: 0.75rem;
 
-    --neon-glow: 160 100% 50%;
-    --neon-cyan: 180 85% 55%;
-    --neon-pink: 330 80% 60%;
-    --surface-glass: 220 18% 10%;
+    --surface-glass: 222 47% 12%;
 
     --success: 160 84% 44%;
     --warning: 38 92% 50%;
     --info: 200 80% 55%;
 
-    --sidebar-background: 220 20% 6%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 160 84% 44%;
-    --sidebar-primary-foreground: 220 20% 4%;
-    --sidebar-accent: 220 14% 14%;
-    --sidebar-accent-foreground: 210 15% 85%;
-    --sidebar-border: 220 14% 16%;
-    --sidebar-ring: 160 84% 44%;
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 25 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 18%;
+    --sidebar-ring: 25 100% 50%;
   }
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem; /* offset for fixed h-14 navbar */
+  }
+
   * {
     @apply border-border;
   }
@@ -119,7 +123,16 @@
   }
 
   .glow-primary {
+    color: white !important;
     box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 0 60px rgba(255, 107, 53, 0.2);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+  .glow-primary:hover,
+  .glow-primary:focus,
+  .glow-primary:active {
+    color: white !important;
+    box-shadow: 0 0 28px rgba(255, 107, 53, 0.6), 0 0 80px rgba(255, 107, 53, 0.3);
+    transform: translateY(-1px);
   }
 
   .glow-neon {
@@ -136,12 +149,15 @@
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
     box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);
-    color: white;
+    color: white !important;
     cursor: pointer;
     border: none;
     transition: transform 0.2s, box-shadow 0.2s;
   }
-  .btn-viprosell:hover {
+  .btn-viprosell:hover,
+  .btn-viprosell:focus,
+  .btn-viprosell:active {
+    color: white !important;
     box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
     transform: translateY(-1px);
   }
@@ -180,4 +196,26 @@
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Force white text on PRIMARY action buttons only.
+   Scoped to avoid breaking ghost/outline/destructive variants.
+   ═══════════════════════════════════════════════════════════════ */
+button[type="submit"],
+.glow-primary,
+.btn-primary {
+  color: #ffffff !important;
+}
+
+button[type="submit"]:hover,
+button[type="submit"]:focus,
+button[type="submit"]:active,
+.glow-primary:hover,
+.glow-primary:focus,
+.glow-primary:active,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  color: #ffffff !important;
 }

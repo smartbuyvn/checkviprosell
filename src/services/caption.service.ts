@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Caption Export Service (Real Supabase)
+ * Viprosell — Caption Export Service (Real Supabase)
  * Read-only from client. AI orchestrator creates captions.
  */
 

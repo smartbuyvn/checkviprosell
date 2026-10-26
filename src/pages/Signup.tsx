@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Signup Page
+/**
+ * Viprosell — Signup Page
  * Supports ?ref= query param for affiliate referral tracking.
  * Referral is deferred to first authenticated session (after email verification).
  */
@@ -39,14 +39,14 @@ const Signup = () => {
     e.preventDefault();
     if (!email || !password) return;
     if (password.length < 6) {
-      toast({ title: 'Lá»—i', description: 'Máº­t kháº©u tá»‘i thiá»ƒu 6 kÃ½ tá»±', variant: 'destructive' });
+      toast({ title: 'Lỗi', description: 'Mật khẩu tối thiểu 6 ký tự', variant: 'destructive' });
       return;
     }
     setLoading(true);
     const { error } = await signup(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'ÄÄƒng kÃ½ tháº¥t báº¡i', description: error, variant: 'destructive' });
+      toast({ title: 'Đăng ký thất bại', description: error, variant: 'destructive' });
     } else {
       if (refCode) {
         storePendingReferral(refCode);
@@ -59,7 +59,7 @@ const Signup = () => {
   if (signupDone) {
     return (
       <PublicLayout hideFooter headerVariant="solid">
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 pt-24 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -69,18 +69,18 @@ const Signup = () => {
             <Mail className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-foreground mb-2">Kiá»ƒm tra email</h2>
+            <h2 className="font-display text-lg font-bold text-foreground mb-2">Kiểm tra email</h2>
             <p className="text-sm text-muted-foreground">
-              ChÃºng tÃ´i Ä‘Ã£ gá»­i link xÃ¡c nháº­n Ä‘áº¿n{' '}
+              Chúng tôi đã gửi link xác nhận đến{' '}
               <strong className="text-foreground">{email}</strong>.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Nháº¥n vÃ o link trong email Ä‘á»ƒ kÃ­ch hoáº¡t tÃ i khoáº£n.
+              Nhấn vào link trong email để kích hoạt tài khoản.
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
             <Link to={ROUTES.LOGIN} className="text-primary hover:underline">
-              Quay láº¡i Ä‘Äƒng nháº­p
+              Quay lại đăng nhập
             </Link>
           </p>
       </motion.div>
@@ -91,7 +91,7 @@ const Signup = () => {
 
   return (
     <PublicLayout hideFooter headerVariant="solid">
-    <div className="flex-1 flex items-center justify-center px-4 py-12">
+    <div className="flex-1 flex items-center justify-center px-4 pt-24 pb-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,22 +99,22 @@ const Signup = () => {
       >
         <div className="text-center">
           <Link to="/" className="font-display text-2xl font-bold inline-block mb-2">
-            <span className="text-foreground">Vidio</span>
+            <span className="text-foreground">Vipro</span>
             <span className="text-gradient-primary">Sell</span>
           </Link>
-          <p className="text-sm text-muted-foreground">Táº¡o tÃ i khoáº£n má»›i</p>
+          <p className="text-sm text-muted-foreground">Tạo tài khoản mới</p>
           {refCode && (
-            <p className="text-xs text-primary mt-1">ðŸŽ Báº¡n Ä‘Æ°á»£c giá»›i thiá»‡u bá»Ÿi: {refCode}</p>
+            <p className="text-xs text-primary mt-1">🎁 Bạn được giới thiệu bởi: {refCode}</p>
           )}
         </div>
 
         <div onClick={handleGoogleWithRef}>
-          <GoogleAuthButton label="ÄÄƒng kÃ½ vá»›i Google" />
+          <GoogleAuthButton label="Đăng ký với Google" />
         </div>
 
         <div className="flex items-center gap-3">
           <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">hoáº·c</span>
+          <span className="text-xs text-muted-foreground">hoặc</span>
           <Separator className="flex-1" />
         </div>
 
@@ -131,25 +131,25 @@ const Signup = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Máº­t kháº©u</Label>
+            <Label htmlFor="password">Mật khẩu</Label>
             <Input
               id="password"
               type="password"
-              placeholder="Tá»‘i thiá»ƒu 6 kÃ½ tá»±"
+              placeholder="Tối thiểu 6 ký tự"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
             />
           </div>
-          <Button type="submit" className="w-full font-display" disabled={loading}>
-            {loading ? 'Äang táº¡o tÃ i khoáº£n...' : 'ÄÄƒng kÃ½'}
+          <Button type="submit" className="w-full font-display glow-primary text-white hover:text-white active:text-white" disabled={loading}>
+            {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          ÄÃ£ cÃ³ tÃ i khoáº£n?{' '}
-          <Link to={ROUTES.LOGIN} className="text-primary hover:underline">ÄÄƒng nháº­p</Link>
+          Đã có tài khoản?{' '}
+          <Link to={ROUTES.LOGIN} className="text-primary hover:underline">Đăng nhập</Link>
         </p>
       </motion.div>
     </div>

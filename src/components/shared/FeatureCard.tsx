@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Feature Card for "Why Viprosell"
+ * Viprosell — Feature Card for "Why Viprosell"
  */
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';

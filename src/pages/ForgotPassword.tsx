@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Forgot Password Page
+/**
+ * Viprosell — Forgot Password Page
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -26,7 +26,7 @@ const ForgotPassword = () => {
     const { error } = await AuthService.resetPassword(email);
     setLoading(false);
     if (error) {
-      toast({ title: 'Lá»—i', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi', description: error, variant: 'destructive' });
     } else {
       setSent(true);
     }
@@ -42,10 +42,10 @@ const ForgotPassword = () => {
       >
         <div className="text-center">
           <Link to="/" className="font-display text-2xl font-bold inline-block mb-2">
-            <span className="text-foreground">Vidio</span>
+            <span className="text-foreground">Vipro</span>
             <span className="text-gradient-primary">Sell</span>
           </Link>
-          <p className="text-sm text-muted-foreground">Äáº·t láº¡i máº­t kháº©u</p>
+          <p className="text-sm text-muted-foreground">Đặt lại mật khẩu</p>
         </div>
 
         {sent ? (
@@ -53,9 +53,9 @@ const ForgotPassword = () => {
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
               <Mail className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="font-display text-base font-semibold text-foreground">Kiá»ƒm tra email</h2>
+            <h2 className="font-display text-base font-semibold text-foreground">Kiểm tra email</h2>
             <p className="text-sm text-muted-foreground">
-              Náº¿u tÃ i khoáº£n tá»“n táº¡i, chÃºng tÃ´i Ä‘Ã£ gá»­i link Ä‘áº·t láº¡i máº­t kháº©u Ä‘áº¿n <strong className="text-foreground">{email}</strong>.
+              Nếu tài khoản tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến <strong className="text-foreground">{email}</strong>.
             </p>
           </div>
         ) : (
@@ -72,14 +72,14 @@ const ForgotPassword = () => {
               />
             </div>
             <Button type="submit" className="w-full font-display" disabled={loading}>
-              {loading ? 'Äang gá»­i...' : 'Gá»­i link Ä‘áº·t láº¡i máº­t kháº©u'}
+              {loading ? 'Đang gửi...' : 'Gửi link đặt lại mật khẩu'}
             </Button>
           </form>
         )}
 
         <p className="text-center text-sm text-muted-foreground">
           <Link to={ROUTES.LOGIN} className="text-primary hover:underline inline-flex items-center gap-1">
-            <ArrowLeft className="w-3 h-3" /> Quay láº¡i Ä‘Äƒng nháº­p
+            <ArrowLeft className="w-3 h-3" /> Quay lại đăng nhập
           </Link>
         </p>
       </motion.div>

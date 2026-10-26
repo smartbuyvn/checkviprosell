@@ -1,12 +1,13 @@
-﻿/**
- * Viprosell â€” Prompt Service (Real Supabase)
+/**
+ * Viprosell — Prompt Service (Real Supabase)
  * CRUD for AI prompt templates. Admin-managed via RLS.
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { packageTypeToDb } from '@/lib/enumMapper';
 
 export const PromptService = {
-  async getActiveByCategory(category: string) {
+  async getByCategory(category: string) {
     const { data, error } = await supabase
       .from('prompts')
       .select('*')
@@ -16,11 +17,11 @@ export const PromptService = {
     return { prompts: data ?? [], error: error?.message ?? null };
   },
 
-  async getByPackageType(packageType: 'quick_ads' | 'review_video' | 'conversion_video') {
+  async getByPackageType(packageType: 'quickads' | 'reviewvideo' | 'conversionvideo') {
     const { data, error } = await supabase
       .from('prompts')
       .select('*')
-      .eq('package_type', packageType)
+      .eq('package_type', packageTypeToDb(packageType))
       .eq('is_active', true)
       .order('version', { ascending: false });
     return { prompts: data ?? [], error: error?.message ?? null };
@@ -39,12 +40,15 @@ export const PromptService = {
     category: string;
     name: string;
     content: string;
-    package_type?: 'quick_ads' | 'review_video' | 'conversion_video' | null;
+    package_type?: 'quickads' | 'reviewvideo' | 'conversionvideo' | null;
     version?: number;
   }) {
     const { data, error } = await supabase
       .from('prompts')
-      .insert(prompt)
+      .insert({
+        ...prompt,
+        package_type: prompt.package_type ? packageTypeToDb(prompt.package_type) as any : null,
+      })
       .select()
       .single();
     return { prompt: data, error: error?.message ?? null };

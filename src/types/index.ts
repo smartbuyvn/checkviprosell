@@ -1,27 +1,27 @@
-﻿// ============================================================
-// Viprosell â€” Core Type Definitions
+// ============================================================
+// Viprosell — Core Type Definitions
 // Source of truth for all typed models in the app
 // ============================================================
 
 // --- Enums ---
 
-export type PackageType = 'quick_ads' | 'review_video' | 'conversion_video';
+export type PackageType = 'quickads' | 'reviewvideo' | 'conversionvideo';
 
 export type ProductCategory = 'beauty' | 'fashion' | 'home' | 'other';
 
 export type ProjectStatus =
   | 'draft'
   | 'analyzing'
-  | 'concept_ready'
-  | 'script_ready'
-  | 'render_queued'
+  | 'conceptready'
+  | 'scriptready'
+  | 'renderqueued'
   | 'rendering'
   | 'completed'
   | 'failed';
 
 export type RenderStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
-export type RenderMode = 'draft_local' | 'draft_local_tts' | 'premium_cloud';
+export type RenderMode = 'draft_local' | 'draftlocaltts' | 'premiumcloud';
 
 export type AffiliateEventStatus = 'pending' | 'approved' | 'paid' | 'rejected';
 
@@ -31,7 +31,7 @@ export type UserRole = 'guest' | 'user' | 'admin';
 
 export type PriceBand = 'low' | 'mid' | 'high';
 
-export type AngleType = 'pain_first' | 'review_trust' | 'offer_conversion';
+export type AngleType = 'painfirst' | 'reviewtrust' | 'offerconversion';
 
 export type OverlayStyle = 'headline' | 'price' | 'badge' | 'cta';
 
@@ -130,6 +130,7 @@ export interface Script {
   scene_cards: SceneCard[];
   cta: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface OverlayItem {
@@ -140,9 +141,21 @@ export interface OverlayItem {
 }
 
 export interface AssetPlanItem {
-  asset_type: 'image' | 'video';
-  source_ref: string;
-  scene_no: number;
+  scene_id: string;
+  start_sec: number;
+  end_sec: number;
+  asset_ref: string;
+  subtitle_text: string[];
+  overlay_list: OverlayItem[];
+  cta_card?: Record<string, any>;
+  safe_regions: {
+    '9_16': { top: number; bottom: number; left: number; right: number };
+    '16_9': { top: number; bottom: number; left: number; right: number };
+    '1_1': { top: number; bottom: number; left: number; right: number };
+  };
+  export_mode_suggestion: string;
+  asset_type?: 'image' | 'video';
+  scene_no?: number;
 }
 
 export interface VisualPack {
@@ -172,6 +185,8 @@ export interface RenderJob {
   output_url?: string;
   error_code?: string;
   error_message?: string;
+  last_fail_reason?: string;
+  provider?: string;
   created_at: string;
   updated_at: string;
 }
@@ -203,6 +218,8 @@ export interface UsageLog {
   step_name: string;
   trace_id: string;
   credits_used: number;
+  duration_ms?: number;
+  error_message?: string;
   created_at: string;
 }
 
@@ -219,16 +236,16 @@ export interface Plan {
 
 export interface SystemSettings {
   // Core settings (original)
-  LOCAL_ONLY_MODE: boolean;
-  CLOUD_FALLBACK_ENABLED: boolean;
-  PREMIUM_RENDER_ENABLED: boolean;
-  ALLOW_EXTERNAL_AI_APIS: boolean;
-  LOCAL_LLM_URL: string;
-  LOCAL_RENDER_WORKER_URL: string;
-  DEFAULT_TTS_MODE: TTSMode;
+  LOCALONLYMODE: boolean;
+  CLOUDFALLBACKENABLED: boolean;
+  PREMIUMRENDERENABLED: boolean;
+  ALLOWEXTERNALAIAPIS: boolean;
+  LOCALLLMURL: string;
+  LOCALRENDERWORKERURL: string;
+  DEFAULTTTSMODE: TTSMode;
   MAX_ASSETS_PER_PROJECT: number;
   DEFAULT_ASPECT_RATIO: AspectRatio;
-  // Extended settings (Addendum Â§6.2)
+  // Extended settings (Addendum §6.2)
   LOCAL_TTS_URL: string;
   AI_JSON_REPAIR_ENABLED: boolean;
   AI_MAX_RETRY_PER_STEP: number;

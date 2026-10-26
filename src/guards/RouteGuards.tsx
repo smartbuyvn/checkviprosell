@@ -1,9 +1,13 @@
-﻿/**
- * Viprosell â€” Route Guards (v2)
- * Protects routes based on auth state and role.
- * Uses shared LoadingState for consistent UX.
+/**
+ * Viprosell — Route Guards (Hardened for Production)
+ *
+ * Defensive patterns:
+ * - AuthGuard includes timeout fallback (redirects to login after 10s)
+ * - Navigate includes ?returnUrl= for deep-link preservation
+ * - Loading state is always visible and branded
  */
 
+import { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
@@ -14,21 +18,43 @@ interface GuardProps {
   children: ReactNode;
 }
 
+/** Max time to display the loading spinner before forcing a redirect */
+const GUARD_TIMEOUT_MS = 8000;
+
 /** Requires authenticated user */
 export function AuthGuard({ children }: GuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (isLoading) {
+  // Safety timeout: if auth check hangs forever, redirect to login
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer = setTimeout(() => {
+      console.warn('[AuthGuard] Auth check timed out after 8s — redirecting to login');
+      setTimedOut(true);
+    }, GUARD_TIMEOUT_MS);
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingState message="Äang xÃ¡c thá»±c..." />
+        <LoadingState message="Đang xác thực..." />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  if (!isAuthenticated || timedOut) {
+    // Preserve the current URL so Login can redirect back after auth
+    const returnUrl = location.pathname + location.search;
+    const loginTarget = returnUrl !== '/' && returnUrl !== ROUTES.LOGIN
+      ? `${ROUTES.LOGIN}?returnUrl=${encodeURIComponent(returnUrl)}`
+      : ROUTES.LOGIN;
+
+    return <Navigate to={loginTarget} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
@@ -38,17 +64,31 @@ export function AuthGuard({ children }: GuardProps) {
 export function AdminGuard({ children }: GuardProps) {
   const { isAdmin, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      console.warn('[AdminGuard] Auth check timed out — redirecting');
+      setTimedOut(true);
+    }, GUARD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingState message="Äang xÃ¡c thá»±c..." />
+        <LoadingState message="Đang xác thực..." />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  if (!isAuthenticated || timedOut) {
+    const returnUrl = location.pathname + location.search;
+    const loginTarget = returnUrl !== '/' && returnUrl !== ROUTES.LOGIN
+      ? `${ROUTES.LOGIN}?returnUrl=${encodeURIComponent(returnUrl)}`
+      : ROUTES.LOGIN;
+    return <Navigate to={loginTarget} state={{ from: location }} replace />;
   }
 
   if (!isAdmin) {
@@ -65,7 +105,7 @@ export function GuestGuard({ children }: GuardProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingState message="Äang táº£i..." />
+        <LoadingState message="Đang tải..." />
       </div>
     );
   }

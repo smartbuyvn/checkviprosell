@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Google Auth Button
+ * Viprosell — Google Auth Button
  * Reusable across Login and Signup pages.
  */
 
@@ -12,7 +12,7 @@ interface GoogleAuthButtonProps {
   label?: string;
 }
 
-export function GoogleAuthButton({ label = 'Tiáº¿p tá»¥c vá»›i Google' }: GoogleAuthButtonProps) {
+export function GoogleAuthButton({ label = 'Tiếp tục với Google' }: GoogleAuthButtonProps) {
   const [loading, setLoading] = useState(false);
   const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export function GoogleAuthButton({ label = 'Tiáº¿p tá»¥c vá»›i Google'
     const { error } = await signInWithGoogle();
     setLoading(false);
     if (error) {
-      toast({ title: 'ÄÄƒng nháº­p Google tháº¥t báº¡i', description: error, variant: 'destructive' });
+      toast({ title: 'Đăng nhập Google thất bại', description: error, variant: 'destructive' });
     }
   };
 
@@ -52,7 +52,7 @@ export function GoogleAuthButton({ label = 'Tiáº¿p tá»¥c vá»›i Google'
           fill="#EA4335"
         />
       </svg>
-      {loading ? 'Äang xá»­ lÃ½...' : label}
+      {loading ? 'Đang xử lý...' : label}
     </Button>
   );
 }

@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Dashboard Layout (app shell)
+ * Viprosell — Dashboard Layout (app shell)
  * Sidebar + top bar with dynamic page title and user info.
  */
 
@@ -42,12 +42,12 @@ export function DashboardLayout() {
 }
 
 function getPageTitle(pathname: string): string {
-  if (pathname.includes('/projects/new')) return 'Táº¡o dá»± Ã¡n má»›i';
-  if (pathname.includes('/analysis')) return 'PhÃ¢n tÃ­ch sáº£n pháº©m';
-  if (pathname.includes('/concepts')) return 'Chá»n concept';
+  if (pathname.includes('/projects/new')) return 'Tạo dự án mới';
+  if (pathname.includes('/analysis')) return 'Phân tích sản phẩm';
+  if (pathname.includes('/concepts')) return 'Chọn concept';
   if (pathname.includes('/script')) return 'Script & Render';
-  if (pathname.includes('/billing')) return 'Thanh toÃ¡n';
-  if (pathname.includes('/account')) return 'TÃ i khoáº£n';
+  if (pathname.includes('/billing')) return 'Thanh toán';
+  if (pathname.includes('/account')) return 'Tài khoản';
   if (pathname.includes('/affiliate')) return 'Affiliate';
   if (pathname.includes('/admin')) return 'Admin Settings';
   return 'Dashboard';

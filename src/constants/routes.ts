@@ -1,14 +1,17 @@
-﻿/**
- * Viprosell â€” Route definitions
+/**
+ * Viprosell — Route definitions
  * Single source of truth for all app routes.
  */
 
 export const ROUTES = {
   // Public
   LANDING: '/',
+  SCENE_PREVIEW: '/scene-preview', // Phase 1 QA — JSON editor + Remotion preview
   LOGIN: '/login',
   SIGNUP: '/signup',
-  PRICING: '/pricing',
+  PRICING: '/#pricing',
+  TERMS: '/terms',
+  PRIVACY: '/privacy',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   AUTH_CALLBACK: '/auth/callback',
@@ -19,6 +22,8 @@ export const ROUTES = {
   PROJECT_ANALYSIS: '/projects/:projectId/analysis',
   PROJECT_CONCEPTS: '/projects/:projectId/concepts',
   PROJECT_SCRIPT: '/projects/:projectId/script',
+  TOOLS_SHOPEE: '/tools/shopee-to-video',
+  TOOLS_IMAGES: '/tools/images-to-video',
   BILLING: '/billing',
   ACCOUNT: '/account',
   AFFILIATE: '/affiliate',

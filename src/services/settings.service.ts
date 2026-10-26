@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Settings Service (Real Supabase)
+/**
+ * Viprosell — Settings Service (Real Supabase)
  * Reads/writes system_settings table. Admin writes go through edge function.
  */
 
@@ -35,12 +35,12 @@ export const SettingsService = {
     const merged = { ...current, ...updates };
     const errors = validateSettings(merged);
 
-    // If LOCAL_ONLY_MODE is being enabled, auto-fix on client too for instant feedback
+    // If LOCALONLYMODE is being enabled, auto-fix on client too for instant feedback
     const fixedUpdates = { ...updates };
-    if (fixedUpdates.LOCAL_ONLY_MODE === true) {
-      fixedUpdates.ALLOW_EXTERNAL_AI_APIS = false;
-      fixedUpdates.PREMIUM_RENDER_ENABLED = false;
-      fixedUpdates.CLOUD_FALLBACK_ENABLED = false;
+    if (fixedUpdates.LOCALONLYMODE === true) {
+      fixedUpdates.ALLOWEXTERNALAIAPIS = false;
+      fixedUpdates.PREMIUMRENDERENABLED = false;
+      fixedUpdates.CLOUDFALLBACKENABLED = false;
     }
 
     // Call backend for validated + audited update
@@ -53,11 +53,11 @@ export const SettingsService = {
   isFeatureAllowed(settings: SystemSettings, feature: 'external_ai' | 'premium_render' | 'cloud_fallback'): boolean {
     switch (feature) {
       case 'external_ai':
-        return !settings.LOCAL_ONLY_MODE && settings.ALLOW_EXTERNAL_AI_APIS;
+        return !settings.LOCALONLYMODE && settings.ALLOWEXTERNALAIAPIS;
       case 'premium_render':
-        return settings.PREMIUM_RENDER_ENABLED && !settings.LOCAL_ONLY_MODE;
+        return settings.PREMIUMRENDERENABLED && !settings.LOCALONLYMODE;
       case 'cloud_fallback':
-        return settings.CLOUD_FALLBACK_ENABLED && !settings.LOCAL_ONLY_MODE;
+        return settings.CLOUDFALLBACKENABLED && !settings.LOCALONLYMODE;
       default:
         return false;
     }

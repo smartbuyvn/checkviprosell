@@ -1,6 +1,6 @@
-﻿/**
- * Viprosell â€” TikTok Ads Template Library (30 templates)
- * Canonical source from Architecture Addendum Â§8â€“9
+/**
+ * Viprosell — TikTok Ads Template Library (30 templates)
+ * Canonical source from Architecture Addendum §8–9
  */
 
 import { PackageType } from '@/types';
@@ -18,12 +18,12 @@ export interface VideoTemplate {
   risk_notes: string[];
 }
 
-// ===================== quick_ads (QA-01 â†’ QA-10) =====================
+// ===================== quickads (QA-01 → QA-10) =====================
 
 export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   {
     template_id: 'QA-01',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Pain Hook Fast Fix',
     intent: 'scroll-stop + fast solution',
     opening_pattern: 'pain first',
@@ -35,7 +35,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-02',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'One USP Hero',
     intent: 'sell exactly 1 strongest USP',
     opening_pattern: 'usp hook',
@@ -47,7 +47,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-03',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Before / After Glimpse',
     intent: 'light before-after contrast without overclaim',
     opening_pattern: 'before state',
@@ -59,7 +59,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-04',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Three Reasons to Try',
     intent: 'pack 3 quick buying reasons',
     opening_pattern: 'question or statement hook',
@@ -71,7 +71,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-05',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Price to Value Snap',
     intent: 'price anchor then value reveal',
     opening_pattern: 'price anchor',
@@ -83,7 +83,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-06',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Daily Problem Demo',
     intent: 'relatable daily situation',
     opening_pattern: 'problem scene',
@@ -95,7 +95,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-07',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Demo in 3 Scenes',
     intent: 'minimal assets, maximum clarity',
     opening_pattern: 'hook',
@@ -107,7 +107,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-08',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Offer Lite Push',
     intent: 'short ad with embedded offer',
     opening_pattern: 'hook',
@@ -119,7 +119,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-09',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Myth vs Reality',
     intent: 'correct common misconception',
     opening_pattern: 'myth statement',
@@ -131,7 +131,7 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'QA-10',
-    package_type: 'quick_ads',
+    package_type: 'quickads',
     template_name: 'Scroll Stop Question',
     intent: 'question hook targeting pain',
     opening_pattern: 'question',
@@ -143,12 +143,12 @@ export const QUICK_ADS_TEMPLATES: VideoTemplate[] = [
   },
 ];
 
-// ===================== review_video (RV-01 â†’ RV-10) =====================
+// ===================== reviewvideo (RV-01 → RV-10) =====================
 
 export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   {
     template_id: 'RV-01',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Bestie Recommends',
     intent: 'friend sharing recommendation',
     opening_pattern: 'soft hook',
@@ -160,7 +160,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-02',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'KOC Mini Review',
     intent: 'short trustworthy review',
     opening_pattern: 'first impression',
@@ -172,7 +172,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-03',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Shop Owner Honest Talk',
     intent: 'shop owner reduces ad feeling',
     opening_pattern: 'customer pain',
@@ -184,7 +184,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-04',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'First Impression Review',
     intent: 'immediate reaction review',
     opening_pattern: 'hook',
@@ -196,7 +196,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-05',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Day in Life Use Case',
     intent: 'product in daily context',
     opening_pattern: 'situation',
@@ -208,7 +208,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-06',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'What I Like / What to Note',
     intent: 'balanced pros and notes for trust',
     opening_pattern: 'pros first',
@@ -220,7 +220,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-07',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Who Should Buy This',
     intent: 'clear target audience callout',
     opening_pattern: 'hook',
@@ -232,7 +232,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-08',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Review After Time',
     intent: 'observed review without fake results',
     opening_pattern: 'time reference',
@@ -244,7 +244,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-09',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'Compare with Previous Option',
     intent: 'contrast with old way/product',
     opening_pattern: 'previous frustration',
@@ -256,7 +256,7 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'RV-10',
-    package_type: 'review_video',
+    package_type: 'reviewvideo',
     template_name: 'FAQ Review Format',
     intent: 'answer common buyer questions',
     opening_pattern: 'question',
@@ -268,12 +268,12 @@ export const REVIEW_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
 ];
 
-// ===================== conversion_video (CV-01 â†’ CV-10) =====================
+// ===================== conversionvideo (CV-01 → CV-10) =====================
 
 export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   {
     template_id: 'CV-01',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Pain -> Proof -> Offer',
     intent: 'classic conversion formula',
     opening_pattern: 'pain first',
@@ -285,7 +285,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-02',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Objection Killer',
     intent: 'handle biggest objection',
     opening_pattern: 'objection statement',
@@ -297,7 +297,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-03',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Why You Still Delay',
     intent: 'attack delay reasons',
     opening_pattern: 'delay callout',
@@ -309,7 +309,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-04',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Bad Choice vs Smart Choice',
     intent: 'contrast to push decision',
     opening_pattern: 'wrong way',
@@ -321,7 +321,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-05',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Proof First Conversion',
     intent: 'lead with evidence',
     opening_pattern: 'proof',
@@ -333,7 +333,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-06',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Bundle Saver',
     intent: 'combo value proposition',
     opening_pattern: 'need identification',
@@ -345,7 +345,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-07',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Limited Offer Push',
     intent: 'controlled urgency',
     opening_pattern: 'hook',
@@ -357,7 +357,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-08',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Common Mistake Fix',
     intent: 'educate then sell',
     opening_pattern: 'mistake callout',
@@ -369,7 +369,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-09',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'Fast Decision CTA',
     intent: 'compress decision journey',
     opening_pattern: 'why now',
@@ -381,7 +381,7 @@ export const CONVERSION_VIDEO_TEMPLATES: VideoTemplate[] = [
   },
   {
     template_id: 'CV-10',
-    package_type: 'conversion_video',
+    package_type: 'conversionvideo',
     template_name: 'UGC Hard Sell Hybrid',
     intent: 'review surface, conversion core',
     opening_pattern: 'review-like hook',

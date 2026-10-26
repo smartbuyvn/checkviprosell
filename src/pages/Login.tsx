@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Login Page
+/**
+ * Viprosell — Login Page
  */
 
 import { useState } from 'react';
@@ -30,7 +30,7 @@ const Login = () => {
     const { error } = await login(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'ÄÄƒng nháº­p tháº¥t báº¡i', description: error, variant: 'destructive' });
+      toast({ title: 'Đăng nhập thất bại', description: error, variant: 'destructive' });
     } else {
       navigate(ROUTES.DASHBOARD);
     }
@@ -38,7 +38,7 @@ const Login = () => {
 
   return (
     <PublicLayout hideFooter headerVariant="solid">
-    <div className="flex-1 flex items-center justify-center px-4 py-12">
+    <div className="flex-1 flex items-center justify-center px-4 pt-24 pb-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -46,17 +46,17 @@ const Login = () => {
       >
         <div className="text-center">
           <Link to="/" className="font-display text-2xl font-bold inline-block mb-2">
-            <span className="text-foreground">Vidio</span>
+            <span className="text-foreground">Vipro</span>
             <span className="text-gradient-primary">Sell</span>
           </Link>
-          <p className="text-sm text-muted-foreground">ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c</p>
+          <p className="text-sm text-muted-foreground">Đăng nhập để tiếp tục</p>
         </div>
 
-        <GoogleAuthButton label="ÄÄƒng nháº­p vá»›i Google" />
+        <GoogleAuthButton label="Đăng nhập với Google" />
 
         <div className="flex items-center gap-3">
           <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">hoáº·c</span>
+          <span className="text-xs text-muted-foreground">hoặc</span>
           <Separator className="flex-1" />
         </div>
 
@@ -73,28 +73,28 @@ const Login = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Máº­t kháº©u</Label>
+            <Label htmlFor="password">Mật khẩu</Label>
             <Input
               id="password"
               type="password"
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          <Button type="submit" className="w-full font-display" disabled={loading}>
-            {loading ? 'Äang Ä‘Äƒng nháº­p...' : 'ÄÄƒng nháº­p'}
+          <Button type="submit" className="w-full font-display glow-primary text-white hover:text-white active:text-white" disabled={loading}>
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </form>
 
         <div className="text-center space-y-2">
           <Link to={ROUTES.FORGOT_PASSWORD} className="text-xs text-muted-foreground hover:text-primary transition-colors">
-            QuÃªn máº­t kháº©u?
+            Quên mật khẩu?
           </Link>
           <p className="text-sm text-muted-foreground">
-            ChÆ°a cÃ³ tÃ i khoáº£n?{' '}
-            <Link to={ROUTES.SIGNUP} className="text-primary hover:underline">ÄÄƒng kÃ½</Link>
+            Chưa có tài khoản?{' '}
+            <Link to={ROUTES.SIGNUP} className="text-primary hover:underline">Đăng ký</Link>
           </p>
         </div>
       </motion.div>

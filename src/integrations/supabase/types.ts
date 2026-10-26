@@ -804,24 +804,24 @@ export type Database = {
     }
     Enums: {
       affiliate_event_status: "pending" | "approved" | "paid" | "rejected"
-      angle_type: "pain_first" | "review_trust" | "offer_conversion"
+      angle_type: "painfirst" | "reviewtrust" | "offerconversion"
       app_role: "admin" | "moderator" | "user"
       order_type: "plan_subscription" | "credit_pack"
       overlay_style: "headline" | "price" | "badge" | "cta"
-      package_type: "quick_ads" | "review_video" | "conversion_video"
+      package_type: "quickads" | "reviewvideo" | "conversionvideo"
       payment_status: "pending" | "paid" | "failed" | "refunded"
       price_band: "low" | "mid" | "high"
       product_category: "beauty" | "fashion" | "home" | "other"
       project_status:
         | "draft"
         | "analyzing"
-        | "concept_ready"
-        | "script_ready"
-        | "render_queued"
+        | "conceptready"
+        | "scriptready"
+        | "renderqueued"
         | "rendering"
         | "completed"
         | "failed"
-      render_mode: "draft_local" | "draft_local_tts" | "premium_cloud"
+      render_mode: "draft_local" | "draftlocaltts" | "premiumcloud"
       render_status:
         | "queued"
         | "processing"
@@ -957,25 +957,25 @@ export const Constants = {
   public: {
     Enums: {
       affiliate_event_status: ["pending", "approved", "paid", "rejected"],
-      angle_type: ["pain_first", "review_trust", "offer_conversion"],
+      angle_type: ["painfirst", "reviewtrust", "offerconversion"],
       app_role: ["admin", "moderator", "user"],
       order_type: ["plan_subscription", "credit_pack"],
       overlay_style: ["headline", "price", "badge", "cta"],
-      package_type: ["quick_ads", "review_video", "conversion_video"],
+      package_type: ["quickads", "reviewvideo", "conversionvideo"],
       payment_status: ["pending", "paid", "failed", "refunded"],
       price_band: ["low", "mid", "high"],
       product_category: ["beauty", "fashion", "home", "other"],
       project_status: [
         "draft",
         "analyzing",
-        "concept_ready",
-        "script_ready",
-        "render_queued",
+        "conceptready",
+        "scriptready",
+        "renderqueued",
         "rendering",
         "completed",
         "failed",
       ],
-      render_mode: ["draft_local", "draft_local_tts", "premium_cloud"],
+      render_mode: ["draft_local", "draftlocaltts", "premiumcloud"],
       render_status: [
         "queued",
         "processing",

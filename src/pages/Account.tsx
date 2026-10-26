@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Account Page
+/**
+ * Viprosell — Account Page
  * All operations routed through AuthService (no direct DB access).
  */
 import { useState, useEffect } from 'react';
@@ -40,16 +40,13 @@ const Account = () => {
   useEffect(() => {
     setPlanLoading(true);
     setPlanError(null);
-    BillingService.getPaymentHistory()
-      .then(({ payments }) => {
-        const latestSub = payments.find(
-          (p: any) => p.order_type === 'plan_subscription' && p.status === 'paid' && p.plan_code
-        );
-        setCurrentPlan(latestSub?.plan_code ?? null);
+    BillingService.getBillingSummary()
+      .then(({ summary }) => {
+        setCurrentPlan(summary?.currentPlan?.name ?? null);
       })
       .catch((err) => {
         if (!isAbortOrLockError(err)) {
-          setPlanError(getUserErrorMessage(err, 'KhÃ´ng táº£i Ä‘Æ°á»£c thÃ´ng tin gÃ³i'));
+          setPlanError(getUserErrorMessage(err, 'Không tải được thông tin gói'));
         }
       })
       .finally(() => setPlanLoading(false));
@@ -63,43 +60,43 @@ const Account = () => {
     });
     setSaving(false);
     if (error) {
-      toast({ title: 'Lá»—i', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi', description: error, variant: 'destructive' });
     } else {
       await refreshProfile();
-      toast({ title: 'ÄÃ£ lÆ°u', description: 'Cáº­p nháº­t thÃ´ng tin thÃ nh cÃ´ng.' });
+      toast({ title: 'Đã lưu', description: 'Cập nhật thông tin thành công.' });
     }
   };
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
-      toast({ title: 'Lá»—i', description: 'Máº­t kháº©u tá»‘i thiá»ƒu 6 kÃ½ tá»±', variant: 'destructive' });
+      toast({ title: 'Lỗi', description: 'Mật khẩu tối thiểu 6 ký tự', variant: 'destructive' });
       return;
     }
     setChangingPw(true);
     const { error } = await AuthService.updatePassword(newPassword);
     setChangingPw(false);
     if (error) {
-      toast({ title: 'Lá»—i', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi', description: error, variant: 'destructive' });
     } else {
-      toast({ title: 'ÄÃ£ cáº­p nháº­t', description: 'Máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c Ä‘á»•i thÃ nh cÃ´ng.' });
+      toast({ title: 'Đã cập nhật', description: 'Mật khẩu đã được đổi thành công.' });
       setNewPassword('');
     }
   };
 
-  if (authLoading) return <LoadingState message="Äang táº£i tÃ i khoáº£n..." />;
-  if (!user) return <ErrorState message="KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng." />;
+  if (authLoading) return <LoadingState message="Đang tải tài khoản..." />;
+  if (!user) return <ErrorState message="Không tìm thấy thông tin người dùng." />;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="font-display text-xl font-bold text-foreground">TÃ i khoáº£n</h1>
-        <p className="text-sm text-muted-foreground">Quáº£n lÃ½ thÃ´ng tin cÃ¡ nhÃ¢n vÃ  báº£o máº­t.</p>
+        <h1 className="font-display text-xl font-bold text-foreground">Tài khoản</h1>
+        <p className="text-sm text-muted-foreground">Quản lý thông tin cá nhân và bảo mật.</p>
       </div>
 
       {/* Profile info */}
       <div className="rounded-xl bg-card p-5 space-y-4">
         <h2 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
-          <User className="w-4 h-4 text-primary" /> ThÃ´ng tin cÃ¡ nhÃ¢n
+          <User className="w-4 h-4 text-primary" /> Thông tin cá nhân
         </h2>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -109,27 +106,27 @@ const Account = () => {
             <Input value={user?.email ?? ''} disabled className="bg-muted" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="displayName" className="text-xs text-muted-foreground">TÃªn hiá»ƒn thá»‹</Label>
+            <Label htmlFor="displayName" className="text-xs text-muted-foreground">Tên hiển thị</Label>
             <Input
               id="displayName"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Nháº­p tÃªn hiá»ƒn thá»‹"
+              placeholder="Nhập tên hiển thị"
             />
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Shield className="w-3 h-3" /> Vai trÃ²: <span className="font-medium text-foreground capitalize">{role}</span>
+              <Shield className="w-3 h-3" /> Vai trò: <span className="font-medium text-foreground capitalize">{role}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CreditCard className="w-3 h-3" /> GÃ³i:{' '}
+              <CreditCard className="w-3 h-3" /> Gói:{' '}
               <span className="font-medium text-foreground capitalize">
                 {planLoading ? '...' : planError ? 'N/A' : (currentPlan ?? 'Free')}
               </span>
             </div>
           </div>
           <Button onClick={handleUpdateProfile} disabled={saving} size="sm">
-            {saving ? 'Äang lÆ°u...' : 'LÆ°u thay Ä‘á»•i'}
+            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </div>
       </div>
@@ -137,22 +134,22 @@ const Account = () => {
       {/* Change password */}
       <div className="rounded-xl bg-card p-5 space-y-4">
         <h2 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-primary" /> Äá»•i máº­t kháº©u
+          <KeyRound className="w-4 h-4 text-primary" /> Đổi mật khẩu
         </h2>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="newPw" className="text-xs text-muted-foreground">Máº­t kháº©u má»›i</Label>
+            <Label htmlFor="newPw" className="text-xs text-muted-foreground">Mật khẩu mới</Label>
             <Input
               id="newPw"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Tá»‘i thiá»ƒu 6 kÃ½ tá»±"
+              placeholder="Tối thiểu 6 ký tự"
               minLength={6}
             />
           </div>
           <Button onClick={handleChangePassword} disabled={changingPw} size="sm" variant="outline">
-            {changingPw ? 'Äang cáº­p nháº­t...' : 'Äá»•i máº­t kháº©u'}
+            {changingPw ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
           </Button>
         </div>
       </div>

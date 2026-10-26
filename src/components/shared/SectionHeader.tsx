@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Section Header component
+ * Viprosell — Section Header component
  */
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';

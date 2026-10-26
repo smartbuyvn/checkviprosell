@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Settings Hook (Real Supabase)
+/**
+ * Viprosell — Settings Hook (Real Supabase)
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
@@ -38,10 +38,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const optimistic = { ...settings, ...updates };
 
     // Auto-fix contradictions client-side for instant feedback
-    if (updates.LOCAL_ONLY_MODE === true) {
-      optimistic.ALLOW_EXTERNAL_AI_APIS = false;
-      optimistic.PREMIUM_RENDER_ENABLED = false;
-      optimistic.CLOUD_FALLBACK_ENABLED = false;
+    if (updates.LOCALONLYMODE === true) {
+      optimistic.ALLOWEXTERNALAIAPIS = false;
+      optimistic.PREMIUMRENDERENABLED = false;
+      optimistic.CLOUDFALLBACKENABLED = false;
     }
 
     setSettings(optimistic);
@@ -50,7 +50,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (error) {
       // Revert optimistic update
       setSettings(prev);
-      toast({ title: 'Lá»—i cáº­p nháº­t settings', description: error, variant: 'destructive' });
+      toast({ title: 'Lỗi cập nhật settings', description: error, variant: 'destructive' });
     } else {
       // Refresh to get server state
       await refreshSettings();

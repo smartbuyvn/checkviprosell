@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Product Analysis Page
+/**
+ * Viprosell — Product Analysis Page
  * Triggers AI product intelligence, displays results with inline editing.
  */
 
@@ -23,10 +23,10 @@ import { ErrorState } from '@/components/shared/ErrorState';
 
 type Status = 'idle' | 'loading' | 'success' | 'failed';
 
-type ArrayField = 'usp_list' | 'pain_points' | 'objections' | 'trust_signals' | 'use_context';
+type ArrayField = 'usp_list' | 'pain_points' | 'objections' | 'trust_signals' | 'use_context' | 'recommended_package_fit';
 
 const SECTION_CONFIG: { key: ArrayField; label: string; icon: typeof Sparkles; color: string }[] = [
-  { key: 'usp_list', label: 'USP / Äiá»ƒm máº¡nh', icon: Sparkles, color: 'text-primary' },
+  { key: 'usp_list', label: 'USP / Điểm mạnh', icon: Sparkles, color: 'text-primary' },
   { key: 'pain_points', label: 'Pain Points', icon: Target, color: 'text-warning' },
   { key: 'objections', label: 'Objections', icon: MessageSquareWarning, color: 'text-destructive' },
   { key: 'trust_signals', label: 'Trust Signals', icon: ShieldCheck, color: 'text-info' },
@@ -90,16 +90,60 @@ const ProductAnalysis = () => {
     if (result.error) {
       setStatus('failed');
       setErrorMsg(result.error);
-      setErrorDetails(result.details || []);
+      setErrorDetails((result as any).details || []);
       toast.error(result.error);
       return;
     }
 
-    if (result.intel) {
+    if (result.jobId) {
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds (30 * 2s)
+
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+
+        // 1. Check if data is ready in DB
+        const { intel: existing } = await IntelService.getByProject(projectId);
+        if (existing && existing.confidence_score && existing.confidence_score > 0) {
+          setIntel({
+            product_name: existing.product_name || '',
+            category: existing.category || 'other',
+            target_buyer: existing.target_buyer || '',
+            price_band: existing.price_band || 'mid',
+            usp_list: (existing.usp_list as string[]) || [],
+            pain_points: (existing.pain_points as string[]) || [],
+            objections: (existing.objections as string[]) || [],
+            trust_signals: (existing.trust_signals as string[]) || [],
+            use_context: (existing.use_context as string[]) || [],
+            recommended_package_fit: (existing.recommended_package_fit as string[]) || [],
+            confidence_score: existing.confidence_score || 0,
+          });
+          setStatus('success');
+          setProjectStatus('ready');
+          toast.success('Phân tích sản phẩm hoàn tất!');
+          return;
+        }
+
+        // 2. Check job status for failure or backend error
+        const jobStatus = await IntelService.pollJobStatus(result.jobId);
+        if (jobStatus.status === 'failed' || jobStatus.status === 'error') {
+          setStatus('failed');
+          setErrorMsg(jobStatus.error || 'AI Worker xử lý thất bại');
+          toast.error(jobStatus.status === 'error' ? 'Lỗi kết nối Backend' : 'AI Worker xử lý thất bại');
+          return;
+        }
+      }
+
+      setStatus('failed');
+      setErrorMsg('Hệ thống bị quá tải hoặc phản hồi chậm (Timeout). Vui lòng tải lại trang hoặc thử lại sau.');
+      toast.error('Quá thời gian chờ AI xử lý');
+    } else if (result.intel) {
+      // Fallback for legacy sync backend
       setIntel(result.intel);
       setStatus('success');
-      setProjectStatus('concept_ready');
-      toast.success('PhÃ¢n tÃ­ch sáº£n pháº©m hoÃ n táº¥t!');
+      setProjectStatus('ready');
+      toast.success('Phân tích sản phẩm hoàn tất!');
     }
   }, [projectId]);
 
@@ -165,17 +209,18 @@ const ProductAnalysis = () => {
       objections: intel.objections,
       trust_signals: intel.trust_signals,
       use_context: intel.use_context,
+      recommended_package_fit: intel.recommended_package_fit,
     });
     setSaving(false);
     if (error) {
-      toast.error('LÆ°u tháº¥t báº¡i: ' + error);
+      toast.error('Lưu thất bại: ' + error);
     } else {
       setDirty(false);
-      toast.success('ÄÃ£ lÆ°u thay Ä‘á»•i');
+      toast.success('Đã lưu thay đổi');
     }
   };
 
-  if (!projectId) return <ErrorState message="Thiáº¿u project ID" />;
+  if (!projectId) return <ErrorState message="Thiếu project ID" />;
 
   if (status === 'loading') {
     return (
@@ -183,8 +228,8 @@ const ProductAnalysis = () => {
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center space-y-4">
             <div className="animate-spin mx-auto w-10 h-10 border-2 border-primary border-t-transparent rounded-full" />
-            <h2 className="text-xl font-semibold text-foreground">Äang phÃ¢n tÃ­ch sáº£n pháº©m...</h2>
-            <p className="text-muted-foreground text-sm">AI Ä‘ang trÃ­ch xuáº¥t thÃ´ng tin thÆ°Æ¡ng máº¡i tá»« dá»¯ liá»‡u sáº£n pháº©m cá»§a báº¡n</p>
+            <h2 className="text-xl font-semibold text-foreground">Đang phân tích sản phẩm...</h2>
+            <p className="text-muted-foreground text-sm">AI đang trích xuất thông tin thương mại từ dữ liệu sản phẩm của bạn</p>
             <Progress value={45} className="max-w-xs mx-auto" />
           </CardContent>
         </Card>
@@ -198,18 +243,18 @@ const ProductAnalysis = () => {
         <Card className="border-destructive/50 bg-card">
           <CardContent className="py-12 text-center space-y-4">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-            <h2 className="text-xl font-semibold text-foreground">PhÃ¢n tÃ­ch tháº¥t báº¡i</h2>
+            <h2 className="text-xl font-semibold text-foreground">Phân tích thất bại</h2>
             <p className="text-muted-foreground">{errorMsg}</p>
             {errorDetails.length > 0 && (
               <div className="text-left max-w-md mx-auto bg-muted rounded-lg p-3 text-sm text-muted-foreground">
-                <p className="font-medium mb-1">Chi tiáº¿t lá»—i:</p>
+                <p className="font-medium mb-1">Chi tiết lỗi:</p>
                 <ul className="list-disc pl-4 space-y-1">
                   {errorDetails.map((d, i) => <li key={i}>{d}</li>)}
                 </ul>
               </div>
             )}
             <Button onClick={runAnalysis} variant="outline" className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Thá»­ láº¡i
+              <RefreshCw className="h-4 w-4" /> Thử lại
             </Button>
           </CardContent>
         </Card>
@@ -249,23 +294,23 @@ const ProductAnalysis = () => {
           <div className="flex items-center gap-2 shrink-0">
             {dirty && (
               <Button variant="outline" size="sm" onClick={saveEdits} disabled={saving} className="gap-2">
-                <Save className="h-3.5 w-3.5" /> {saving ? 'Äang lÆ°u...' : 'LÆ°u thay Ä‘á»•i'}
+                <Save className="h-3.5 w-3.5" /> {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={runAnalysis} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> PhÃ¢n tÃ­ch láº¡i
+              <RefreshCw className="h-4 w-4" /> Phân tích lại
             </Button>
             <Button onClick={() => navigate(`/projects/${projectId}/concepts`)} className="gap-2">
-              Tiáº¿p tá»¥c <ChevronRight className="h-4 w-4" />
+              Tiếp tục <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* Summary row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <SummaryCard label="Danh má»¥c" value={intel.category} />
+          <SummaryCard label="Danh mục" value={intel.category} />
           <EditableSummaryCard
-            label="Äá»‘i tÆ°á»£ng"
+            label="Đối tượng"
             value={intel.target_buyer}
             editing={editingField === 'target_buyer'}
             editValue={editValue}
@@ -274,23 +319,36 @@ const ProductAnalysis = () => {
             onCommit={() => commitScalarEdit('target_buyer')}
             onCancel={cancelEdit}
           />
-          <SummaryCard label="PhÃ¢n khÃºc giÃ¡" value={intel.price_band} />
-          <SummaryCard label="Äá»™ tin cáº­y" value={`${intel.confidence_score}%`} />
+          <SummaryCard label="Phân khúc giá" value={intel.price_band} />
+          <SummaryCard label="Độ tin cậy" value={`${Math.round(intel.confidence_score <= 1 ? intel.confidence_score * 100 : intel.confidence_score)}%`} />
         </div>
 
-        {/* Recommended packages */}
+        {/* Recommended packages editable field */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" /> GÃ³i video phÃ¹ há»£p
-            </CardTitle>
+            <div className="flex items-center justify-between">
+               <CardTitle className="text-base flex items-center gap-2">
+                 <Package className="h-4 w-4 text-primary" /> Gói video phù hợp
+               </CardTitle>
+               {(intel.recommended_package_fit as string[]).length < 3 && (
+                 <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => addArrayItem('recommended_package_fit')}>
+                   + Thêm
+                 </Button>
+               )}
+            </div>
           </CardHeader>
-          <CardContent className="flex gap-2 flex-wrap">
-            {intel.recommended_package_fit.map((pkg) => (
-              <Badge key={pkg} variant="secondary" className="text-sm">
-                {pkg === 'quick_ads' ? 'âš¡ Quick Ads' : pkg === 'review_video' ? 'ðŸŽ¬ Review Video' : 'ðŸ”¥ Conversion Video'}
-              </Badge>
-            ))}
+          <CardContent>
+             <ul className="space-y-2">
+               {(intel.recommended_package_fit as string[]).map((item, i) => (
+                 <EditableListItem
+                   key={`package_fit-${i}`}
+                   value={item}
+                   onChange={(v) => editArrayItem('recommended_package_fit', i, v)}
+                   onRemove={() => removeArrayItem('recommended_package_fit', i)}
+                 />
+               ))}
+             </ul>
+             <p className="text-[10px] text-muted-foreground mt-2">Dùng: quickads, reviewvideo, conversionvideo</p>
           </CardContent>
         </Card>
 
@@ -307,7 +365,7 @@ const ProductAnalysis = () => {
                   </CardTitle>
                   {(intel[key] as string[]).length < 5 && (
                     <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => addArrayItem(key)}>
-                      + ThÃªm
+                      + Thêm
                     </Button>
                   )}
                 </div>
@@ -331,16 +389,16 @@ const ProductAnalysis = () => {
     );
   }
 
-  // idle â€” show start button
+  // idle — show start button
   return (
     <div className="max-w-3xl mx-auto py-12 space-y-6">
       <Card className="border-border bg-card">
         <CardContent className="py-12 text-center space-y-4">
           <Search className="mx-auto h-12 w-12 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">PhÃ¢n tÃ­ch sáº£n pháº©m</h2>
-          <p className="text-muted-foreground">AI sáº½ phÃ¢n tÃ­ch sáº£n pháº©m Ä‘á»ƒ tÃ¬m USP, pain points, vÃ  thÃ´ng tin thÆ°Æ¡ng máº¡i.</p>
+          <h2 className="text-xl font-semibold text-foreground">Phân tích sản phẩm</h2>
+          <p className="text-muted-foreground">AI sẽ phân tích sản phẩm để tìm USP, pain points, và thông tin thương mại.</p>
           <Button onClick={runAnalysis} className="gap-2">
-            <Sparkles className="h-4 w-4" /> Báº¯t Ä‘áº§u phÃ¢n tÃ­ch
+            <Sparkles className="h-4 w-4" /> Bắt đầu phân tích
           </Button>
         </CardContent>
       </Card>
@@ -426,7 +484,7 @@ function EditableListItem({
 
   return (
     <li className="text-sm text-muted-foreground flex items-center gap-2 group">
-      <span className="text-primary">â€¢</span>
+      <span className="text-primary">•</span>
       <span className="flex-1 cursor-pointer" onClick={() => setEditing(true)}>{value}</span>
       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
         <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setEditing(true)}><Pencil className="h-2.5 w-2.5" /></Button>

@@ -1,5 +1,5 @@
 ﻿/**
- * Viprosell â€” Local Render Engine
+ * Viprosell — Local Render Engine
  * Canvas + MediaRecorder based video composer.
  * Handles: image/video slideshow, overlay burn-in, subtitle burn-in, CTA end card.
  * Supports optional local TTS via browser SpeechSynthesis.
@@ -39,7 +39,7 @@ export interface LocalRenderConfig {
   onProgress?: (pct: number) => void;
 }
 
-// Legacy compat â€” maps old assetUrls string[] to AssetEntry[]
+// Legacy compat — maps old assetUrls string[] to AssetEntry[]
 export interface LegacyRenderConfig {
   width: number;
   height: number;
@@ -125,7 +125,7 @@ async function loadAsset(entry: AssetEntry): Promise<LoadedAsset> {
 function truncateOverlayText(text: string): string {
   const words = text.split(' ');
   if (words.length <= MAX_OVERLAY_WORDS) return text;
-  return words.slice(0, MAX_OVERLAY_WORDS).join(' ') + 'â€¦';
+  return words.slice(0, MAX_OVERLAY_WORDS).join(' ') + '…';
 }
 
 function drawWrappedText(

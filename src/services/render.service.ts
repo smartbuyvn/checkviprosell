@@ -1,14 +1,22 @@
-﻿/**
- * Viprosell â€” Render Service
+/**
+ * Viprosell — Render Service
  * Job management + local render orchestration.
- * Uses shared edge function caller.
+ * Routes through Fastify backend (not Supabase edge functions).
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { callEdgeFunction } from '@/services/edge.client';
+import { getSessionSafe } from '@/lib/errorUtils';
 import { renderLocalDraft, type LocalRenderConfig, type LegacyRenderConfig, type RenderResult } from '@/engine/renderEngine';
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
-export type RenderMode = 'draft_local' | 'draft_local_tts' | 'premium_cloud';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1');
+
+async function getAuthHeader(): Promise<string | null> {
+  const session = await getSessionSafe(supabase);
+  return session ? `Bearer ${session.access_token}` : null;
+}
+
+export type RenderMode = 'draft_local' | 'draftlocaltts' | 'premiumcloud';
 
 export interface RenderJob {
   id: string;
@@ -25,32 +33,53 @@ export interface RenderJob {
 }
 
 export const RenderService = {
-  /** Create a render job via edge function */
-  async createJob(projectId: string, renderMode: RenderMode = 'draft_local') {
-    return callEdgeFunction('render-worker', {
-      action: 'create',
-      project_id: projectId,
-      render_mode: renderMode,
-      trace_id: crypto.randomUUID(),
-    });
+  /** Create a render job via Fastify backend (enqueues BullMQ job) */
+  async createJob(projectId: string, renderMode: RenderMode = 'draft_local', sceneGraph: any = null) {
+    const auth = await getAuthHeader();
+    if (!auth) return { data: null, error: 'Chưa đăng nhập' };
+    try {
+      const resp = await fetchWithTimeout(`${API_BASE}/render/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({
+          projectId,
+          mode: renderMode,       // backend expects 'mode' not 'render_mode'
+          aspect: '9:16',        // backend expects 'aspect' not 'aspect_ratio'
+          sceneGraph: sceneGraph,
+        }),
+        timeout: 15000,
+      });
+      const data = await resp.json();
+      if (!resp.ok) return { data: null, error: data.error || 'Không tạo được render job' };
+      // Backend returns: { success: true, renderId, status, traceId }
+      return { data, error: null };
+    } catch {
+      return { data: null, error: 'Không thể kết nối đến backend. Backend đã chạy chưa?' };
+    }
   },
 
-  /** Update render job status via edge function */
-  async updateStatus(renderId: string, projectId: string, status: string, extra?: {
+  /** Poll render job status from Supabase (worker updates DB directly) */
+  async pollRenderStatus(renderId: string): Promise<{ status: string; output_url: string | null; error_message: string | null }> {
+    const { data, error } = await supabase
+      .from('renders')
+      .select('status, output_url, error_code, error_message')
+      .eq('id', renderId)
+      .single();
+    if (error) return { status: 'error', output_url: null, error_message: error.message };
+    return { status: data?.status || 'unknown', output_url: data?.output_url || null, error_message: data?.error_message || null };
+  },
+
+  /** Update render job status (direct DB — for client-side render path only) */
+  async updateStatus(renderId: string, _projectId: string, status: string, extra?: {
     output_url?: string;
     duration_ms?: number;
     error_code?: string;
     error_message?: string;
     last_fail_reason?: string;
   }) {
-    return callEdgeFunction('render-worker', {
-      action: 'update_status',
-      project_id: projectId,
-      render_id: renderId,
-      status,
-      ...extra,
-      trace_id: crypto.randomUUID(),
-    });
+    const updateData: Record<string, any> = { status, updated_at: new Date().toISOString(), ...extra };
+    const { error } = await supabase.from('renders').update(updateData).eq('id', renderId);
+    return { error: error?.message ?? null };
   },
 
   /** Get all renders for a project */
@@ -81,6 +110,7 @@ export const RenderService = {
       .from('renders')
       .select('id, created_at')
       .eq('status', 'completed')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error || !data) return { count: 0, latestDate: null };
     return {
@@ -105,10 +135,10 @@ export const RenderService = {
   ): Promise<{ success: boolean; outputUrl?: string; error?: string }> {
     // Step 1: Create job
     const { data: createData, error: createError } = await this.createJob(projectId, renderMode);
-    if (createError || !createData?.render) {
-      return { success: false, error: createError || 'KhÃ´ng táº¡o Ä‘Æ°á»£c render job' };
+    if (createError || !createData?.renderId) {
+      return { success: false, error: createError || 'Không tạo được render job' };
     }
-    const renderId = createData.render.id;
+    const renderId = createData.renderId; // backend returns { renderId, status, traceId }
 
     // Step 2: Mark processing
     await this.updateStatus(renderId, projectId, 'processing');
@@ -127,16 +157,16 @@ export const RenderService = {
         error_message: err.message || 'Render engine crashed',
         last_fail_reason: err.message,
       });
-      return { success: false, error: err.message || 'Render engine tháº¥t báº¡i' };
+      return { success: false, error: err.message || 'Render engine thất bại' };
     }
 
     if (result.error || !result.blob.size) {
       await this.updateStatus(renderId, projectId, 'failed', {
         error_code: 'EMPTY_OUTPUT',
-        error_message: result.error || 'Video output rá»—ng',
+        error_message: result.error || 'Video output rỗng',
         last_fail_reason: result.error,
       });
-      return { success: false, error: result.error || 'Video output rá»—ng' };
+      return { success: false, error: result.error || 'Video output rỗng' };
     }
 
     onProgress?.(88);
@@ -146,9 +176,9 @@ export const RenderService = {
     if (!user) {
       await this.updateStatus(renderId, projectId, 'failed', {
         error_code: 'AUTH_LOST',
-        error_message: 'PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t',
+        error_message: 'Phiên đăng nhập đã hết',
       });
-      return { success: false, error: 'PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t' };
+      return { success: false, error: 'Phiên đăng nhập đã hết' };
     }
 
     const fileName = `${user.id}/${projectId}/render_${renderId}.webm`;
@@ -162,10 +192,10 @@ export const RenderService = {
         error_message: uploadError.message,
         last_fail_reason: uploadError.message,
       });
-      return { success: false, error: `Upload tháº¥t báº¡i: ${uploadError.message}` };
+      return { success: false, error: `Upload thất bại: ${uploadError.message}` };
     }
 
-    // Private bucket â€” use signed URL (1 hour expiry)
+    // Private bucket — use signed URL (1 hour expiry)
     const { data: signedData, error: signedError } = await supabase.storage
       .from('project-assets')
       .createSignedUrl(fileName, 3600);
@@ -174,9 +204,9 @@ export const RenderService = {
     if (signedError || !outputUrl) {
       await this.updateStatus(renderId, projectId, 'failed', {
         error_code: 'SIGNED_URL_FAILED',
-        error_message: signedError?.message || 'KhÃ´ng táº¡o Ä‘Æ°á»£c link táº£i video',
+        error_message: signedError?.message || 'Không tạo được link tải video',
       });
-      return { success: false, error: 'KhÃ´ng táº¡o Ä‘Æ°á»£c link táº£i video' };
+      return { success: false, error: 'Không tạo được link tải video' };
     }
 
     onProgress?.(95);

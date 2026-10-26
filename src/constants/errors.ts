@@ -1,6 +1,6 @@
 ﻿/**
- * Viprosell â€” Error Taxonomy
- * Canonical error codes from Architecture Addendum Â§7.3
+ * Viprosell — Error Taxonomy
+ * Canonical error codes from Architecture Addendum §7.3
  */
 
 export const ERROR_CODES = {
@@ -44,15 +44,15 @@ export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
 
 /** User-facing error messages (Vietnamese) */
 export const ERROR_MESSAGES: Record<string, string> = {
-  [ERROR_CODES.AI_SCHEMA_INVALID]: 'Káº¿t quáº£ AI khÃ´ng há»£p lá»‡. Vui lÃ²ng thá»­ láº¡i.',
-  [ERROR_CODES.AI_OUTPUT_UNUSABLE]: 'AI khÃ´ng thá»ƒ táº¡o ná»™i dung phÃ¹ há»£p. Vui lÃ²ng thá»­ láº¡i.',
-  [ERROR_CODES.AI_TIMEOUT]: 'AI xá»­ lÃ½ quÃ¡ lÃ¢u. Vui lÃ²ng thá»­ láº¡i sau.',
-  [ERROR_CODES.LOCAL_LLM_UNREACHABLE]: 'KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n AI local. Kiá»ƒm tra cáº¥u hÃ¬nh.',
-  [ERROR_CODES.RENDER_WORKER_UNREACHABLE]: 'Render worker khÃ´ng kháº£ dá»¥ng. Kiá»ƒm tra cáº¥u hÃ¬nh.',
-  [ERROR_CODES.RENDER_ASSET_MISSING]: 'Thiáº¿u áº£nh/video sáº£n pháº©m Ä‘á»ƒ render.',
-  [ERROR_CODES.RENDER_TIMEOUT]: 'Render quÃ¡ lÃ¢u. Vui lÃ²ng thá»­ láº¡i.',
-  [ERROR_CODES.INSUFFICIENT_CREDITS]: 'KhÃ´ng Ä‘á»§ credits. Vui lÃ²ng náº¡p thÃªm.',
-  [ERROR_CODES.CLOUD_CALL_BLOCKED_BY_POLICY]: 'TÃ­nh nÄƒng cloud bá»‹ táº¯t bá»Ÿi admin.',
-  [ERROR_CODES.PREMIUM_FEATURE_DISABLED]: 'TÃ­nh nÄƒng premium chÆ°a Ä‘Æ°á»£c báº­t.',
-  [ERROR_CODES.PAYMENT_WEBHOOK_DUPLICATE]: 'Giao dá»‹ch Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½.',
+  [ERROR_CODES.AI_SCHEMA_INVALID]: 'Kết quả AI không hợp lệ. Vui lòng thử lại.',
+  [ERROR_CODES.AI_OUTPUT_UNUSABLE]: 'AI không thể tạo nội dung phù hợp. Vui lòng thử lại.',
+  [ERROR_CODES.AI_TIMEOUT]: 'AI xử lý quá lâu. Vui lòng thử lại sau.',
+  [ERROR_CODES.LOCAL_LLM_UNREACHABLE]: 'Không thể kết nối đến AI local. Kiểm tra cấu hình.',
+  [ERROR_CODES.RENDER_WORKER_UNREACHABLE]: 'Render worker không khả dụng. Kiểm tra cấu hình.',
+  [ERROR_CODES.RENDER_ASSET_MISSING]: 'Thiếu ảnh/video sản phẩm để render.',
+  [ERROR_CODES.RENDER_TIMEOUT]: 'Render quá lâu. Vui lòng thử lại.',
+  [ERROR_CODES.INSUFFICIENT_CREDITS]: 'Không đủ credits. Vui lòng nạp thêm.',
+  [ERROR_CODES.CLOUD_CALL_BLOCKED_BY_POLICY]: 'Tính năng cloud bị tắt bởi admin.',
+  [ERROR_CODES.PREMIUM_FEATURE_DISABLED]: 'Tính năng premium chưa được bật.',
+  [ERROR_CODES.PAYMENT_WEBHOOK_DUPLICATE]: 'Giao dịch đã được xử lý.',
 };
