@@ -66,8 +66,13 @@ async function readDbPolicy(): Promise<{ localOnly: boolean; allowExternal: bool
     if (error || !data) return null;
     const map: Record<string, string> = {};
     for (const row of data) map[row.key] = String(row.value);
-    const localOnly = map['LOCAL_ONLY_MODE'] === 'true' || map['local_only_mode'] === 'true';
-    const allowExternal = map['ALLOW_EXTERNAL_AI_APIS'] !== 'false' && map['allow_external_ai_apis'] !== 'false';
+    // Trang admin ghi key kieu LOCALONLYMODE (khong gach duoi, theo interface SystemSettings),
+    // con cho nay truoc day chi doc LOCAL_ONLY_MODE -> cong tac trong admin khong co tac dung.
+    // Nhan ca hai cach viet. allowExternal giu nguyen fail-open: thieu key thi van cho goi ngoai.
+    const localOnly = ['LOCAL_ONLY_MODE', 'LOCALONLYMODE', 'local_only_mode']
+      .some((k) => map[k] === 'true');
+    const allowExternal = !['ALLOW_EXTERNAL_AI_APIS', 'ALLOWEXTERNALAIAPIS', 'allow_external_ai_apis']
+      .some((k) => map[k] === 'false');
     return { localOnly, allowExternal };
   } catch {
     return null;

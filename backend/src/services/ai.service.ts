@@ -259,7 +259,7 @@ export const AIService = {
     }, { onConflict: 'project_id' });
     if (vpErr) throw new Error(`VisualPack DB Error: ${vpErr.message}`);
 
-    const { error: capErr } = await supabaseClient.from('captions').upsert({
+    const { error: capErr } = await supabaseClient.from('caption_exports').upsert({
       project_id: projectId,
       caption_tiktok: `${strategy.primary_hook}\n${strategy.cta}`,
       caption_reels: `${strategy.primary_hook}\n${strategy.cta}`,

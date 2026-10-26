@@ -32,7 +32,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // 1. Health Checks (DB, LLM, Render Worker)
   fastify.get('/health', async (request, reply) => {
     try {
-      const { data, error } = await supabase.from('system_settings').select('id').limit(1);
+      // system_settings khong co cot 'id' (khoa chinh la 'key') - select('id') lam query
+      // loi 42703 va dbStatus luon bao 'down'. Chi can ping bang bat ky cot co thuc.
+      const { error } = await supabase.from('system_settings').select('key').limit(1);
       const dbStatus = error ? 'down' : 'up';
       
       const { data: llmSetting } = await supabase.from('system_settings').select('value').eq('key', 'LOCALLLMURL').single();
