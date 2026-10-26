@@ -1,4 +1,4 @@
-﻿# Viprosell â€” SCOPE LOCK FINAL
+# Viprosell â€” SCOPE LOCK FINAL
 
 **Status:** LOCKED  
 **Version:** 1.0  
@@ -20,9 +20,9 @@ Viprosell is a **focused SaaS web app** for short commerce video creation for on
 
 | Package | Purpose | Duration | Output |
 |---|---|---|---|
-| `quick_ads` | Test sáº£n pháº©m nhanh trÃªn TikTok/Reels/Shorts | 15â€“20s | 1 script + 6 scene cards + overlay + caption + CTA |
-| `review_video` | TÄƒng trust kiá»ƒu KOC/bestie/chá»§ shop | 20â€“30s | 3 hooks + 1 script + 6â€“8 scene cards + CTA má»m + caption |
-| `conversion_video` | Tá»‘i Æ°u chuyá»ƒn Ä‘á»•i: pain â†’ proof â†’ offer â†’ urgency | 20â€“30s | 3 hooks + 1 script + 6â€“8 scene cards + CTA trá»±c tiáº¿p + caption |
+| `quickads` | Test sáº£n pháº©m nhanh trÃªn TikTok/Reels/Shorts | 15â€“20s | 1 script + 6 scene cards + overlay + caption + CTA |
+| `reviewtrustvideo` | TÄƒng trust kiá»ƒu KOC/bestie/chá»§ shop | 20â€“30s | 3 hooks + 1 script + 6â€“8 scene cards + CTA má» m + caption |
+| `offerconversionvideo` | Tá»‘i Æ°u chuyá»ƒn Ä‘á»•i: pain â†’ proof â†’ offer â†’ urgency | 20â€“30s | 3 hooks + 1 script + 6â€“8 scene cards + CTA trá»±c tiáº¿p + caption |
 
 **No other packages are permitted in MVP.**
 
@@ -32,7 +32,7 @@ Viprosell is a **focused SaaS web app** for short commerce video creation for on
 
 | Constraint | Value |
 |---|---|
-| Default mode | local-first |
+| Default mode | locpainfirst |
 | Cloud | optional fallback / premium only |
 | Asset strategy | asset-first (real uploaded images/video) |
 | Video generation | template assembly by default |
@@ -68,7 +68,7 @@ Payment rules:
 | `PREMIUM_RENDER_ENABLED` | `false` | Show premium render options |
 | `ALLOW_EXTERNAL_AI_APIS` | `false` | Allow external AI providers |
 | `LOCAL_LLM_URL` | `http://localhost:11434` | Local LLM endpoint |
-| `LOCAL_RENDER_WORKER_URL` | `http://localhost:5001` | Local render worker |
+| `LOCAL_RENDER_WORKER_URL` | `http://localhost:5001` | Local renderqueuedr |
 | `DEFAULT_TTS_MODE` | `local` | TTS mode |
 | `MAX_ASSETS_PER_PROJECT` | `8` | Max assets per project |
 | `DEFAULT_ASPECT_RATIO` | `9:16` | Default video ratio |
@@ -99,7 +99,7 @@ Optional: credit packs for top-up outside main plan.
 3. Dashboard
 4. New Project Wizard (4-step)
 5. Product Analysis
-6. Concept Selection
+6. Cconceptreadylection
 7. Script + Render
 8. Billing
 9. Affiliate Dashboard

@@ -1,4 +1,4 @@
-﻿# Viprosell â€” DATA CONTRACTS
+# Viprosell â€” DATA CONTRACTS
 
 **Phase:** 01 â€” Foundation Design  
 **Date:** 2026-03-09
@@ -19,19 +19,19 @@
   "objections": ["string"],
   "trust_signals": ["string"],
   "use_context": ["string"],
-  "recommended_package_fit": ["quick_ads|review_video|conversion_video"],
+  "recommended_package_fit": ["quickads|reviewvideo|conversionvideo"],
   "confidence_score": 0.0
 }
 ```
 
-## 2. ConceptSet
+## 2. ConceptReady
 
 ```json
 {
   "project_id": "uuid",
   "angles": [
     {
-      "angle_type": "pain_first|review_trust|offer_conversion",
+      "angle_type": "painfirst|reviewtrust|offerconversion",
       "title": "string",
       "big_idea": "string",
       "hook": "string",
@@ -50,7 +50,7 @@
 {
   "id": "uuid",
   "project_id": "uuid",
-  "package_type": "quick_ads|review_video|conversion_video",
+  "package_type": "quickads|reviewvideo|conversionvideo",
   "duration_sec": 20,
   "script_text": "string",
   "scene_cards": [
@@ -71,7 +71,7 @@
 ```json
 {
   "project_id": "uuid",
-  "render_mode": "draft_local|draft_local_tts|premium_cloud",
+  "render_mode": "draft_local|draftlocaltts|premiumcloud",
   "aspect_ratio": "9:16",
   "subtitle_text": "string",
   "overlay_list": [
@@ -112,7 +112,7 @@
 {
   "id": "uuid",
   "project_id": "uuid",
-  "render_mode": "draft_local|draft_local_tts|premium_cloud",
+  "render_mode": "draft_local|draftlocaltts|premiumcloud",
   "status": "queued|processing|completed|failed|cancelled",
   "provider": "string|null",
   "output_url": "string|null",

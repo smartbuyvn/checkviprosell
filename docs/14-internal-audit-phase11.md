@@ -1,4 +1,4 @@
-﻿# Viprosell â€” INTERNAL AUDIT (Phase 11)
+# Viprosell â€” INTERNAL AUDIT (Phase 11)
 
 **Date:** 2026-03-09
 
@@ -7,20 +7,20 @@
 ## Scope Drift Check: âœ… CLEAN
 - No features outside MVP scope added
 - Affiliate is within Phase 11 scope
-- QA hardening is within Phase 11 scope
+- QA hardenpainfirst within Phase 11 scope
 
 ## Hidden Cloud Dependencies: âœ… NONE
 - LOCAL_ONLY_MODE blocks all external AI API calls
-- Render worker rejects premium_cloud when PREMIUM_RENDER_ENABLED=false
+- Render worker rejects premiumcloud when PREMIUM_RENDER_ENABLED=false
 - No fetch() calls to external services bypass policy checks
-- Edge functions read system_settings before making external calls
+- Edge functions read system_settings before making extedraftlocaltts
 
 ## Credit Safety: âœ… SAFE
-- Credits deducted only on successful render completion (render-worker edge function)
-- Intel/concept/script steps log usage but do NOT deduct credits from balance
+- Credits deducted only on successful render completion (renderqueuedr edge function)
+- Intel/conceptready/scriptready steps log usage but do NOT deduct credits from balance
 - Credit deduction happens server-side only (edge function with service role)
 - Duplicate webhook â†’ idempotency_key check â†’ no-op
-- Retry of failed render creates new job, previous job stays failed
+- Retry of failed render creates new job, previewtrust job stays failed
 
 ## Duplicate Affiliate Prevention: âœ… SAFE
 - Affiliate event created per payment_id (webhook handles)
@@ -30,7 +30,7 @@
 
 ## User-Visible Errors: âœ… ACTIONABLE
 - All error states show Vietnamese messages
-- Retry buttons provided where applicable
+- Retry buttconversionvideod where applicable
 - Error codes logged for admin debugging
 
 ## Remaining Blockers for Production
@@ -42,6 +42,6 @@
 6. **Cloud render provider**: Not integrated (local only)
 
 ## Cleanup Recommendations
-1. Move commission rate to system_settings (low priority)
+1. Mofferconversion rate to system_settings (low priority)
 2. Add server-side self-referral check in payment-webhook (defense in depth)
 3. Add rate limiting to edge functions (production hardening)

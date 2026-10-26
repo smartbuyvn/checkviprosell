@@ -1,4 +1,4 @@
-﻿# Viprosell â€” CANONICAL NAMING TABLE
+# Viprosell â€” CANONICAL NAMING TABLE
 
 **Status:** LOCKED  
 **Date:** 2026-03-09
@@ -7,12 +7,12 @@
 
 ## package_type
 ```
-quick_ads | review_video | conversion_video
+quickads | reviewvideo | conversionvideo
 ```
 
 ## project.status
 ```
-draft | analyzing | concept_ready | script_ready | render_queued | rendering | completed | failed
+draft | analyzing | conceptready | scriptready | renderqueued | rendering | completed | failed
 ```
 
 ## render.status
@@ -22,7 +22,7 @@ queued | processing | completed | failed | cancelled
 
 ## render_mode
 ```
-draft_local | draft_local_tts | premium_cloud
+draft_local | draftlocaltts | premiumcloud
 ```
 
 ## payment.status
@@ -52,7 +52,7 @@ low | mid | high
 
 ## angle_type
 ```
-pain_first | review_trust | offer_conversion
+painfirst | reviewtrust | offerconversion
 ```
 
 ## overlay_style

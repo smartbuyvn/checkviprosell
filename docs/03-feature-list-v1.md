@@ -1,4 +1,4 @@
-﻿# Viprosell â€” FEATURE LIST V1
+# Viprosell â€” FEATURE LIST V1
 
 **Status:** LOCKED  
 **Date:** 2026-03-09
@@ -8,7 +8,7 @@
 ## Core Features (MVP)
 
 ### A. Project Intake
-- [ ] Package selection (quick_ads / review_video / conversion_video)
+- [ ] Package selection (quickads / reviewvideofferconversionvideo)
 - [ ] Product URL input
 - [ ] Image upload (3â€“8 images)
 - [ ] Video upload (1 sample video)
@@ -21,8 +21,8 @@
 ### B. AI "Brain" Pipeline
 - [ ] Product Intelligence Agent â€” analyze product from URL/assets
 - [ ] Commerce Angle Agent â€” generate 3 angles with scoring
-- [ ] Script Composer Agent â€” package-specific script + scene cards
-- [ ] Visual Pack Builder â€” overlay list + asset plan + music hint
+- [ ] Script Composer Agent â€” package-specific scriptready + scene cards
+- [ ] Visual Pack Builder â€” overlpainfirst + asset plan + music hint
 - [ ] Caption Exporter â€” TikTok/Reels caption + hashtags + thumbnail text
 
 ### C. Video "Body" Pipeline
@@ -30,7 +30,7 @@
 - [ ] Overlay text rendering
 - [ ] Subtitle burn-in
 - [ ] CTA end card
-- [ ] Optional local TTS voice
+- [ ] Optiondraftlocaltts TTS voice
 - [ ] Local draft render (FFmpeg/Remotion) â€” 9:16 MP4
 - [ ] Preview playback
 - [ ] Export/download
@@ -45,7 +45,7 @@
 - [ ] Empty states for no projects / no renders / no usage
 
 ### E. Billing
-- [ ] 3 plan cards (Starter / Pro / Premium)
+- [ ] 3 plan cards (Starter / Pro / Ppremiumcloud)
 - [ ] Credit packs (optional top-up)
 - [ ] Checkout with payment abstraction
 - [ ] Payment method badges (Visa, PayPal)
@@ -69,7 +69,7 @@
 - [ ] Failed jobs log
 - [ ] Usage dashboard
 - [ ] Audit logs
-- [ ] Contradictory-setting validation
+- [ ] Cconceptreadyictory-setting validation
 
 ### H. Auth & Access
 - [ ] Email/password signup + login

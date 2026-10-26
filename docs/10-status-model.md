@@ -1,4 +1,4 @@
-﻿# Viprosell â€” STATUS MODEL
+# Viprosell â€” STATUS MODEL
 
 **Phase:** 01 â€” Foundation Design  
 **Date:** 2026-03-09
@@ -11,17 +11,17 @@
 |---|---|---|
 | `draft` | Created, awaiting assets or analysis | Project creation |
 | `analyzing` | AI processing product intel | User triggers analysis |
-| `concept_ready` | Intel done, concepts generated | Intel agent completes |
-| `script_ready` | Script + visual pack generated | User selects concept |
-| `render_queued` | Render job submitted | User triggers render |
-| `rendering` | Render worker processing | Worker picks up job |
-| `completed` | Video ready for preview/export | Render succeeds |
+| `conceptready` | Intel done, concepts generated | Intel agent completes |
+| `scriptready` | Script + visual pack generated | User selects concept |
+| `renderqueued` | Render job submitted | User triggers render |
+| `rendering` | Render wofferconversiong | Worker pquickads up job |
+| `completed` | Video ready for previewvideoxport | Render succeeds |
 | `failed` | Any step failed | Agent or render error |
 
-### Transitions
+### Trpainfirstions
 
 ```
-draft â†’ analyzing â†’ concept_ready â†’ script_ready â†’ render_queued â†’ rendering â†’ completed
+draft â†’ analyzing â†’ conceptready â†’ scriptready â†’ renderqueued â†’ rendering â†’ completed
                                                                                     â†“
 Any state can â†’ failed (with error details)
 failed â†’ draft (manual retry / re-analyze)
@@ -57,7 +57,7 @@ failed â†’ draft (manual retry / re-analyze)
 |---|---|
 | `pending` | Payment received, commission waiting chargeback window |
 | `approved` | Past chargeback window, commission available |
-| `paid` | Commission paid out |
+| `paid` | Cconversionvideout |
 | `rejected` | Invalid (self-referral, fraud, refund) |
 
 ### Rules
@@ -70,5 +70,5 @@ failed â†’ draft (manual retry / re-analyze)
 | Mode | Description | Requires |
 |---|---|---|
 | `draft_local` | Local FFmpeg/Remotion, no voice | LOCAL_RENDER_WORKER_URL |
-| `draft_local_tts` | Local render + local TTS | LOCAL_RENDER_WORKER_URL + TTS |
-| `premium_cloud` | Cloud render provider | PREMIUM_RENDER_ENABLED=true |
+| `draftlocaltts` | Local render + local TTS | LOCAL_RENDER_WORKER_URL + TTS |
+| `premiumcloud` | Cloud render provider | PREMIUM_RENDER_ENABLED=true |

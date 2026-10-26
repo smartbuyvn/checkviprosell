@@ -1,4 +1,4 @@
-﻿# Viprosell_Architecture_Templates_Prompts_Addendum
+# Viprosell_Architecture_Templates_Prompts_Addendum
 
 Version: 1.0  
 Status: Canonical Addendum  
@@ -217,7 +217,7 @@ Phá»¥ trÃ¡ch:
 - xÃ¡c Ä‘á»‹nh render mode
 - kiá»ƒm tra settings local/cloud
 - queue render local
-- cháº·n premium/cloud trÃ¡i policy
+- cháº·n premium cloud trÃ¡i policy
 - cáº­p nháº­t render status vÃ  lá»—i
 
 #### Admin Control Plane
@@ -242,16 +242,16 @@ Phá»¥ trÃ¡ch:
 - event bus lá»›n
 - job orchestration phÃ¢n tÃ¡n phá»©c táº¡p
 - analytics warehouse riÃªng
-- nhiá»u render provider cÃ¹ng lÃºc
-- nhiá»u model vendor cÃ¹ng lÃºc náº¿u khÃ´ng cáº§n thiáº¿t
-- microservices chia quÃ¡ nhá» gÃ¢y khÃ³ debug
+- nhiá» u render provider cÃ¹ng lÃºc
+- nhiá» u model vendor cÃ¹ng lÃºc náº¿u khÃ´ng cáº§n thiáº¿t
+- microservices chia quÃ¡ nhá»  gÃ¢y khÃ³ debug
 
 ---
 
-## 5. Chiáº¿n lÆ°á»£c ná»n táº£ng AI local-first
+## 5. Chiáº¿n lÆ°á»£c ná» n táº£ng AI local-first
 
 ### 5.1 Má»¥c tiÃªu tá»‘i Æ°u AI platform
-Ná»n táº£ng AI cá»§a Viprosell khÃ´ng cáº§n trá»Ÿ thÃ nh â€œAI labâ€.  
+Ná» n táº£ng AI cá»§a Viprosell khÃ´ng cáº§n trá»Ÿ thÃ nh â€œAI labâ€ .  
 Má»¥c tiÃªu Ä‘Ãºng lÃ :
 - nhanh
 - á»•n Ä‘á»‹nh
@@ -270,12 +270,12 @@ TÃ¡ch AI thÃ nh 5 nhÃ³m nhiá»‡m vá»¥:
 
 ### 5.3 Rule Ä‘á»‹nh tuyáº¿n local model
 - Task cáº§n cáº¥u trÃºc cháº·t: Æ°u tiÃªn model á»•n Ä‘á»‹nh JSON.
-- Task cáº§n ngÃ´n ngá»¯ tá»± nhiÃªn: Æ°u tiÃªn model máº¡nh hÆ¡n vá» viáº¿t thoáº¡i ngáº¯n.
+- Task cáº§n ngÃ´n ngá»¯ tá»± nhiÃªn: Æ°u tiÃªn model máº¡nh hÆ¡n vá»  viáº¿t thoáº¡i ngáº¯n.
 - Task sá»­a lá»—i JSON: Æ°u tiÃªn model nháº¹, deterministic hÆ¡n.
-- KhÃ´ng dÃ¹ng model náº·ng nháº¥t cho má»i task.
-- KhÃ´ng render-generate báº±ng LLM; render thuá»™c worker template assembly.
+- KhÃ´ng dÃ¹ng model náº·ng nháº¥t cho má» i task.
+- KhÃ´ng render assembly báº±ng LLM; render thuá»™c worker template assembly.
 
-### 5.4 Cáº¥u hÃ¬nh AI tá»‘i Æ°u vá» nguyÃªn táº¯c
+### 5.4 Cáº¥u hÃ¬nh AI tá»‘i Æ°u vá»  nguyÃªn táº¯c
 - `LOCAL_ONLY_MODE=true` lÃ  máº·c Ä‘á»‹nh.
 - `ALLOW_EXTERNAL_AI_APIS=false` lÃ  máº·c Ä‘á»‹nh.
 - `CLOUD_FALLBACK_ENABLED=false` lÃ  máº·c Ä‘á»‹nh.
@@ -293,7 +293,7 @@ TÃ¡ch AI thÃ nh 5 nhÃ³m nhiá»‡m vá»¥:
 - Manual Retry Flow.
 
 ### 5.6 Quy táº¯c cháº¥t lÆ°á»£ng AI output
-Má»i AI output pháº£i qua 4 cá»•ng:
+Má» i AI output pháº£i qua 4 cá»•ng:
 1. Schema valid.
 2. Ná»™i dung Ä‘Ãºng package.
 3. Scene buildable tá»« asset tháº­t.
@@ -303,7 +303,7 @@ Má»i AI output pháº£i qua 4 cá»•ng:
 
 ## 6. Local services vÃ  settings chuáº©n
 
-### 6.1 Settings ná»n báº¯t buá»™c
+### 6.1 Settings ná» n báº¯t buá»™c
 ```json
 {
   "LOCAL_ONLY_MODE": true,
@@ -337,13 +337,13 @@ Má»i AI output pháº£i qua 4 cá»•ng:
 - Náº¿u `LOCAL_ONLY_MODE=true` thÃ¬ `ALLOW_EXTERNAL_AI_APIS=false`.
 - Náº¿u `CLOUD_FALLBACK_ENABLED=true` nhÆ°ng khÃ´ng cÃ³ provider config há»£p lá»‡ thÃ¬ khÃ´ng cho save.
 - Náº¿u `PROMPT_VERSION_PINNING=false` thÃ¬ admin pháº£i Ä‘Æ°á»£c cáº£nh bÃ¡o rollout prompt cÃ³ thá»ƒ gÃ¢y drift.
-- Náº¿u `AI_JSON_REPAIR_ENABLED=false` thÃ¬ há»‡ thá»‘ng pháº£i bÃ¡o giáº£m Ä‘á»™ bá»n cá»§a pipeline.
+- Náº¿u `AI_JSON_REPAIR_ENABLED=false` thÃ¬ há»‡ thá»‘ng pháº£i bÃ¡o giáº£m Ä‘á»™ bá» n cá»§a pipeline.
 
 ---
 
 ## 7. Data vÃ  observability bá»• sung
 
-### 7.1 TrÆ°á»ng nÃªn khÃ³a thÃªm trong schema
+### 7.1 TrÆ°á» ng nÃªn khÃ³a thÃªm trong schema
 BÃªn cáº¡nh schema hiá»‡n cÃ³, cáº§n báº£o Ä‘áº£m cÃ¡c field sau Ä‘Ã£ cÃ³ hoáº·c sáº½ thÃªm báº±ng migration final:
 - `users.updated_at`
 - `projects.language`
@@ -378,7 +378,7 @@ Má»—i luá»“ng pháº£i truy Ä‘Æ°á»£c:
 Template khÃ´ng pháº£i lÃ  script cá»‘ Ä‘á»‹nh.  
 Template lÃ  cáº¥u trÃºc chuyá»ƒn Ä‘á»•i Ä‘á»ƒ AI láº¥p ná»™i dung theo sáº£n pháº©m, package vÃ  asset cÃ³ sáºµn.
 
-### 8.2 Structure chuáº©n cho má»i template
+### 8.2 Structure chuáº©n cho má» i template
 Má»—i template nÃªn chá»©a:
 - template_id
 - package_type
@@ -392,7 +392,7 @@ Má»—i template nÃªn chá»©a:
 
 ---
 
-### 8.3 `quick_ads` â€” 10 template
+### 8.3 `quickads` â€” 10 template
 
 #### QA-01 â€” Pain Hook Fast Fix
 - Intent: cháº·n lÆ°á»›t báº±ng pain rÃµ rá»“i Ä‘Æ°a giáº£i phÃ¡p nhanh.
@@ -412,15 +412,15 @@ Má»—i template nÃªn chá»©a:
 #### QA-04 â€” Three Reasons to Try
 - Intent: gÃ³i nhanh 3 lÃ½ do mua.
 - Flow: hook -> reason1 -> reason2 -> reason3 -> CTA.
-- Fit: sáº£n pháº©m nhiá»u Ä‘iá»ƒm cá»™ng ngáº¯n gá»n.
+- Fit: sáº£n pháº©m nhiá» u Ä‘iá»ƒm cá»™ng ngáº¯n gá» n.
 
 #### QA-05 â€” Price to Value Snap
-- Intent: Ä‘Ã¡nh vÃ o cáº£m giÃ¡c â€œgiÃ¡ nÃ y mÃ  Ä‘Æ°á»£c váº­yâ€.
+- Intent: Ä‘Ã¡nh vÃ o cáº£m giÃ¡c â€œgiÃ¡ nÃ y mÃ  Ä‘Æ°á»£c váº­yâ€ .
 - Flow: price anchor -> value -> proof detail -> CTA.
 - Fit: mass market, deal-driven.
 
 #### QA-06 â€” Daily Problem Demo
-- Intent: mÃ´ táº£ tÃ¬nh huá»‘ng thÆ°á»ng ngÃ y ráº¥t Ä‘á»i.
+- Intent: mÃ´ táº£ tÃ¬nh huá»‘ng thÆ°á» ng ngÃ y ráº¥t Ä‘á» i.
 - Flow: problem scene -> product use -> result -> CTA.
 - Fit: tiá»‡n Ã­ch, beauty, home.
 
@@ -440,17 +440,17 @@ Má»—i template nÃªn chá»©a:
 - Fit: sáº£n pháº©m hay bá»‹ hiá»ƒu sai.
 
 #### QA-10 â€” Scroll Stop Question
-- Intent: dÃ¹ng cÃ¢u há»i Ä‘Ãºng pain Ä‘á»ƒ cháº·n lÆ°á»›t.
+- Intent: dÃ¹ng cÃ¢u há» i Ä‘Ãºng pain Ä‘á»ƒ cháº·n lÆ°á»›t.
 - Flow: question -> answer -> USP -> CTA.
 - Fit: sáº£n pháº©m solve-problem.
 
 ---
 
-### 8.4 `review_video` â€” 10 template
+### 8.4 `reviewvideo` â€” 10 template
 
 #### RV-01 â€” Bestie Recommends
 - Intent: nhÆ° báº¡n thÃ¢n chia sáº».
-- Flow: hook má»m -> tráº£i nghiá»‡m/quan sÃ¡t -> 2 Ä‘iá»ƒm thÃ­ch -> CTA má»m.
+- Flow: hook má» m -> tráº£i nghiá»‡m/quan sÃ¡t -> 2 Ä‘iá»ƒm thÃ­ch -> CTA má» m.
 
 #### RV-02 â€” KOC Mini Review
 - Intent: review kiá»ƒu ngáº¯n, tin Ä‘Æ°á»£c.
@@ -458,7 +458,7 @@ Má»—i template nÃªn chá»©a:
 
 #### RV-03 â€” Shop Owner Honest Talk
 - Intent: chá»§ shop nÃ³i tháº­t, giáº£m cáº£m giÃ¡c quáº£ng cÃ¡o.
-- Flow: pain khÃ¡ch hay gáº·p -> vÃ¬ sao mÃ¬nh chá»n mÃ³n nÃ y -> ai há»£p -> CTA má»m.
+- Flow: pain khÃ¡ch hay gáº·p -> vÃ¬ sao mÃ¬nh chá» n mÃ³n nÃ y -> ai há»£p -> CTA má» m.
 
 #### RV-04 â€” First Impression Review
 - Intent: review ngay láº§n Ä‘áº§u cáº§m/xem/dÃ¹ng.
@@ -466,7 +466,7 @@ Má»—i template nÃªn chá»©a:
 
 #### RV-05 â€” Day in Life Use Case
 - Intent: Ä‘áº·t sáº£n pháº©m vÃ o context dÃ¹ng háº±ng ngÃ y.
-- Flow: tÃ¬nh huá»‘ng -> dÃ¹ng sáº£n pháº©m -> cáº£m nháº­n -> CTA má»m.
+- Flow: tÃ¬nh huá»‘ng -> dÃ¹ng sáº£n pháº©m -> cáº£m nháº­n -> CTA má» m.
 
 #### RV-06 â€” What I Like / What to Note
 - Intent: tÄƒng trust báº±ng cÃ¢n báº±ng thÃ­ch vÃ  lÆ°u Ã½.
@@ -478,19 +478,19 @@ Má»—i template nÃªn chá»©a:
 
 #### RV-08 â€” Review After Time
 - Intent: táº¡o cáº£m giÃ¡c review Ä‘Ã£ cÃ³ quan sÃ¡t, nhÆ°ng khÃ´ng bá»‹a káº¿t quáº£.
-- Flow: sau má»™t thá»i gian quan sÃ¡t -> tháº¥y gÃ¬ -> cÃ³ Ä‘Ã¡ng tiá»n khÃ´ng -> CTA.
+- Flow: sau má»™t thá» i gian quan sÃ¡t -> tháº¥y gÃ¬ -> cÃ³ Ä‘Ã¡ng tiá» n khÃ´ng -> CTA.
 
 #### RV-09 â€” Compare with Previous Option
 - Intent: cho tháº¥y khÃ¡c biá»‡t vá»›i mÃ³n cÅ©/cÃ¡ch cÅ©.
-- Flow: Ä‘iá»u chÆ°a á»•n trÆ°á»›c Ä‘Ã¢y -> sáº£n pháº©m má»›i cáº£i thiá»‡n gÃ¬ -> CTA má»m.
+- Flow: Ä‘iá» u chÆ°a á»•n trÆ°á»›c Ä‘Ã¢y -> sáº£n pháº©m má»›i cáº£i thiá»‡n gÃ¬ -> CTA má» m.
 
 #### RV-10 â€” FAQ Review Format
-- Intent: review báº±ng cÃ¡ch tráº£ lá»i cÃ¢u há»i user hay há»i.
-- Flow: 3 cÃ¢u há»i -> 3 cÃ¢u tráº£ lá»i ngáº¯n -> CTA.
+- Intent: review báº±ng cÃ¡ch tráº£ lá» i cÃ¢u há» i user hay há» i.
+- Flow: 3 cÃ¢u há» i -> 3 cÃ¢u tráº£ lá» i ngáº¯n -> CTA.
 
 ---
 
-### 8.5 `conversion_video` â€” 10 template
+### 8.5 `conversionvideo` â€” 10 template
 
 #### CV-01 â€” Pain -> Proof -> Offer
 - Intent: cÃ´ng thá»©c chá»‘t Ä‘Æ¡n cá»• Ä‘iá»ƒn vÃ  hiá»‡u quáº£.
@@ -525,11 +525,11 @@ Má»—i template nÃªn chá»©a:
 - Flow: mistake -> consequence -> better option -> CTA.
 
 #### CV-09 â€” Fast Decision CTA
-- Intent: Ã©p vá» hÃ nh Ä‘á»™ng rÃµ mÃ  váº«n tá»± nhiÃªn.
+- Intent: Ã©p vá»  hÃ nh Ä‘á»™ng rÃµ mÃ  váº«n tá»± nhiÃªn.
 - Flow: why now -> what user gets -> how to act -> CTA.
 
 #### CV-10 â€” UGC Hard Sell Hybrid
-- Intent: bá» ngoÃ i nhÆ° UGC/review, lÃµi lÃ  conversion.
+- Intent: bá»  ngoÃ i nhÆ° UGC/review, lÃµi lÃ  conversion.
 - Flow: review-like hook -> proof -> offer -> CTA.
 
 ---
@@ -539,7 +539,7 @@ Má»—i template nÃªn chá»©a:
 ```json
 {
   "template_id": "QA-01",
-  "package_type": "quick_ads",
+  "package_type": "quickads",
   "template_name": "Pain Hook Fast Fix",
   "intent": "scroll-stop + fast solution",
   "opening_pattern": "pain first",
@@ -558,7 +558,7 @@ Má»—i template nÃªn chá»©a:
 ### 10.1 Táº¡i sao pháº£i phÃ¢n táº§ng prompt
 Lovable vÃ  AI generation dá»… lá»‡ch náº¿u khÃ´ng phÃ¢n biá»‡t rÃµ:
 - prompt há»‡ thá»‘ng toÃ n cá»¥c
-- prompt Ä‘iá»u phá»‘i build phase
+- prompt Ä‘iá» u phá»‘i build phase
 - prompt domain
 - prompt package
 - prompt validator / repair
@@ -585,7 +585,7 @@ Your task is to build, audit, refine, and complete Viprosell without changing it
 
 LOCKED PRODUCT TRUTH
 - Viprosell is a web app SaaS for short commerce video creation.
-- It only supports 3 packages: quick_ads, review_video, conversion_video.
+- It only supports 3 packages: quickads, reviewvideo, conversionvideo.
 - It is local-first, cloud-optional, asset-first.
 - AI is used for product intelligence, commerce angles, scripts, overlays, captions, subtitles, CTA, and scene plans.
 - Video output is assembled from real assets by template-based rendering.
@@ -682,8 +682,8 @@ Correct the output before finalizing.
 SYSTEM:
 Báº¡n lÃ  Product Intelligence Agent cho social commerce Viá»‡t Nam.
 PhÃ¢n tÃ­ch sáº£n pháº©m Ä‘áº§u vÃ o Ä‘á»ƒ phá»¥c vá»¥ video bÃ¡n hÃ ng.
-Tráº£ vá» JSON ngáº¯n gá»n, thá»±c dá»¥ng, khÃ´ng hoa má»¹, khÃ´ng suy diá»…n quÃ¡ má»©c.
-Æ¯u tiÃªn ngÃ´n ngá»¯ ngÆ°á»i mua Viá»‡t Nam.
+Tráº£ vá»  JSON ngáº¯n gá» n, thá»±c dá»¥ng, khÃ´ng hoa má»¹, khÃ´ng suy diá»…n quÃ¡ má»©c.
+Æ¯u tiÃªn ngÃ´n ngá»¯ ngÆ°á» i mua Viá»‡t Nam.
 Báº¯t buá»™c tráº£ Ä‘Ãºng schema JSON.
 
 USER:
@@ -693,7 +693,7 @@ INPUT SOURCE:
 - manual_notes: {manual_notes}
 
 TASK:
-PhÃ¢n tÃ­ch sáº£n pháº©m vÃ  tráº£ vá»:
+PhÃ¢n tÃ­ch sáº£n pháº©m vÃ  tráº£ vá» :
 - product_name
 - category
 - target_buyer
@@ -723,9 +723,9 @@ PRODUCT_INTEL:
 
 TASK:
 Táº¡o 3 selling angles:
-1. pain_first
-2. review_trust
-3. offer_conversion
+1. painfirst
+2. reviewtrust
+3. offerconversion
 
 Má»—i angle gá»“m:
 - title
@@ -761,12 +761,12 @@ Return a corrected version in the same JSON schema.
 
 ## 13. Prompt package máº¡nh cho script generation
 
-### 13.1 `quick_ads`
+### 13.1 `quickads`
 ```text
 SYSTEM:
-Báº¡n lÃ  TikTok Commerce Script Engine cho thá»‹ trÆ°á»ng Viá»‡t Nam.
+Báº¡n lÃ  TikTok Commerce Script Engine cho thá»‹ trÆ°á» ng Viá»‡t Nam.
 Báº¡n chuyÃªn viáº¿t video quáº£ng cÃ¡o ngáº¯n 15-20 giÃ¢y cho seller/shop online.
-Má»¥c tiÃªu khÃ´ng pháº£i viáº¿t TVC Ä‘áº¹p, mÃ  lÃ  viáº¿t script giá»‘ng video bÃ¡n hÃ ng tháº­t trÃªn TikTok:
+Má»¥c tiêu khÃ´ng pháº£i viáº¿t TVC Ä‘áº¹p, mÃ  lÃ  viáº¿t script giá»‘ng video bÃ¡n hÃ ng tháº­t trÃªn TikTok:
 - nÃ³i ngáº¯n
 - tá»± nhiÃªn
 - dá»… hiá»ƒu trong 1 láº§n nghe
@@ -783,7 +783,7 @@ RULES:
 - khÃ´ng Ä‘Æ°á»£c nghe nhÆ° brochure hoáº·c content AI quÃ¡ trÆ¡n tru
 
 OUTPUT:
-Tráº£ vá» JSON há»£p lá»‡ gá»“m:
+Tráº£ vá»  JSON há»£p lá»‡ gá»“m:
 - package_type
 - angle
 - duration_sec
@@ -799,7 +799,7 @@ Tráº£ vá» JSON há»£p lá»‡ gá»“m:
 
 INTERNAL SELF-CHECK:
 - hook cÃ³ scroll-stop khÃ´ng?
-- cÃ¢u cÃ³ tá»± nhiÃªn khi Ä‘á»c lá»›n khÃ´ng?
+- cÃ¢u cÃ³ tá»± nhiÃªn khi Ä‘á» c lá»›n khÃ´ng?
 - scene cÃ³ build Ä‘Æ°á»£c tá»« asset tháº­t khÃ´ng?
 - cÃ³ overclaim khÃ´ng?
 - náº¿u cÃ³, tá»± sá»­a rá»“i má»›i tráº£ JSON.
@@ -818,33 +818,33 @@ ASSETS_AVAILABLE: {assets_available}
 MANUAL_NOTES: {manual_notes}
 ```
 
-### 13.2 `review_video`
+### 13.2 `reviewvideo`
 ```text
 SYSTEM:
 Báº¡n lÃ  TikTok Review Script Engine cho social commerce Viá»‡t Nam.
 Báº¡n viáº¿t video review bÃ¡n hÃ ng 20-30 giÃ¢y theo kiá»ƒu:
 - bestie
-- KOC má»m
+- KOC má» m
 - chá»§ shop chia sáº» tháº­t
 - soft expert
 
-Má»¥c tiÃªu:
+Má»¥c tiêu:
 - tÄƒng trust
 - táº¡o cáº£m giÃ¡c chÃ¢n tháº­t
 - khÃ´ng nÃ³i nhÆ° TVC
-- cÃ³ chi tiáº¿t cá»¥ thá»ƒ khiáº¿n ngÆ°á»i xem tin
-- váº«n bÃ¡n Ä‘Æ°á»£c hÃ ng nhÆ°ng CTA pháº£i má»m
+- cÃ³ chi tiáº¿t cá»¥ thá»ƒ khiáº¿n ngÆ°á» i xem tin
+- váº«n bÃ¡n Ä‘Æ°á»£c hÃ ng nhÆ°ng CTA pháº£i má» m
 
 RULES:
-- spoken Vietnamese Ä‘á»i thÆ°á»ng
+- spoken Vietnamese Ä‘á» i thÆ°á» ng
 - cÃ¢u ngáº¯n, cÃ³ nhá»‹p nÃ³i tháº­t
-- nÃªn cÃ³ Ã­t nháº¥t 1 chi tiáº¿t cá»¥ thá»ƒ vá» texture, form, cáº£m giÃ¡c dÃ¹ng, Ä‘á»™ tiá»‡n, hoáº·c tÃ¬nh huá»‘ng dÃ¹ng
-- structure Æ°u tiÃªn: Hook review -> cáº£m nháº­n/quan sÃ¡t tháº­t -> 1-2 Ä‘iá»ƒm Ä‘Ã¡ng tiá»n -> ai nÃªn mua -> CTA má»m
+- nÃªn cÃ³ Ã­t nháº¥t 1 chi tiáº¿t cá»¥ thá»ƒ vá»  texture, form, cáº£m giÃ¡c dÃ¹ng, Ä‘á»™ tiá»‡n, hoáº·c tÃ¬nh huá»‘ng dÃ¹ng
+- structure Æ°u tiÃªn: Hook review -> cáº£m nháº­n/quan sÃ¡t tháº­t -> 1-2 Ä‘iá»ƒm Ä‘Ã¡ng tiá» n -> ai nÃªn mua -> CTA má» m
 - khÃ´ng bá»‹a tráº£i nghiá»‡m máº¡nh náº¿u input khÃ´ng há»— trá»£
 - khÃ´ng kháº³ng Ä‘á»‹nh tuyá»‡t Ä‘á»‘i
 
 OUTPUT:
-Tráº£ vá» JSON há»£p lá»‡ gá»“m:
+Tráº£ vá»  JSON há»£p lá»‡ gá»“m:
 - package_type
 - persona
 - duration_sec
@@ -859,12 +859,12 @@ Tráº£ vá» JSON há»£p lá»‡ gá»“m:
 - self_check
 
 INTERNAL SELF-CHECK:
-- cÃ³ nghe nhÆ° ngÆ°á»i tháº­t Ä‘ang chia sáº» khÃ´ng?
+- cÃ³ nghe nhÆ° ngÆ°á» i tháº­t Ä‘ang chia sáº» khÃ´ng?
 - cÃ³ chi tiáº¿t cá»¥ thá»ƒ tÄƒng trust chÆ°a?
 - cÃ³ quÃ¡ PR hay khÃ´ng?
 - cÃ³ nÃ³i rÃµ ai há»£p / khÃ´ng há»£p chÆ°a?
 - scene cÃ³ build Ä‘Æ°á»£c tá»« asset tháº­t khÃ´ng?
-- náº¿u cÃ³ váº¥n Ä‘á», tá»± sá»­a rá»“i má»›i tráº£ JSON.
+- náº¿u cÃ³ váº¥n Ä‘á» , tá»± sá»­a rá»“i má»›i tráº£ JSON.
 
 USER:
 PRODUCT_NAME: {product_name}
@@ -880,12 +880,12 @@ ASSETS_AVAILABLE: {assets_available}
 MANUAL_NOTES: {manual_notes}
 ```
 
-### 13.3 `conversion_video`
+### 13.3 `conversionvideo`
 ```text
 SYSTEM:
 Báº¡n lÃ  TikTok Conversion Script Engine cho social commerce Viá»‡t Nam.
 Báº¡n chuyÃªn viáº¿t video 20-30 giÃ¢y Ä‘á»ƒ chá»‘t Ä‘Æ¡n.
-Má»¥c tiÃªu lÃ  tÄƒng hÃ nh Ä‘á»™ng mua báº±ng:
+Má»¥c tiêu lÃ  tÄƒng hÃ nh Ä‘á»™ng mua báº±ng:
 - pain
 - objection handling
 - proof
@@ -903,7 +903,7 @@ RULES:
 - structure Æ°u tiÃªn: Pain -> Proof -> Objection -> Offer -> CTA
 
 OUTPUT:
-Tráº£ vá» JSON há»£p lá»‡ gá»“m:
+Tráº£ vá»  JSON há»£p lá»‡ gá»“m:
 - package_type
 - duration_sec
 - hooks
@@ -945,7 +945,7 @@ MANUAL_NOTES: {manual_notes}
 
 ## 14. Thá»© tá»± prompt chi tiáº¿t Ä‘á»ƒ Lovable thá»±c hiá»‡n
 
-### 14.1 Pha ná»n â€” prompts há»‡ thá»‘ng
+### 14.1 Pha ná» n â€” prompts há»‡ thá»‘ng
 1. Master System Prompt.
 2. Build Governance Prompt.
 3. Local Execution Policy Prompt.
@@ -1138,7 +1138,7 @@ Stop after this phase and return findings, changes, risks, retest checklist.
 Build the New Project Wizard for Viprosell.
 
 Steps:
-1. Select package: quick_ads, review_video, conversion_video
+1. Select package: quickads, reviewvideo, conversionvideo
 2. Input source: product URL or upload 3-8 images/videos
 3. Select category: beauty, fashion, home, other
 4. Optional flags: local voice, premium cloud render only if admin enables it
@@ -1200,7 +1200,7 @@ Implement the script workspace for Viprosell.
 Requirements:
 - left side: script, scene cards, overlays, caption, hashtags, thumbnail text
 - right side: preview placeholder, render status, retry, export actions
-- prepare the workspace to accept output from quick_ads, review_video, conversion_video script engines
+- prepare the workspace to accept output from quickads, reviewvideo, conversionvideo script engines
 - do not implement final render in this phase
 
 Stop after this phase and return findings, changes, risks, retest checklist.
@@ -1208,8 +1208,8 @@ Stop after this phase and return findings, changes, risks, retest checklist.
 
 ### 15.7 Prompt 07 â€” Quick Ads Script Engine
 ```text
-Implement the quick_ads script engine for Viprosell.
-Use the quick_ads package prompt, JSON schema validation, self-critique loop, and the following template library IDs:
+Implement the quickads script engine for Viprosell.
+Use the quickads package prompt, JSON schema validation, self-critique loop, and the following template library IDs:
 - QA-01 to QA-10
 
 Rules:
@@ -1223,8 +1223,8 @@ Stop after this phase and return findings, changes, risks, retest checklist.
 
 ### 15.8 Prompt 08 â€” Review Script Engine
 ```text
-Implement the review_video script engine for Viprosell.
-Use the review_video package prompt, JSON schema validation, self-critique loop, persona awareness, and template library IDs:
+Implement the reviewvideo script engine for Viprosell.
+Use the reviewvideo package prompt, JSON schema validation, self-critique loop, persona awareness, and template library IDs:
 - RV-01 to RV-10
 
 Rules:
@@ -1238,8 +1238,8 @@ Stop after this phase and return findings, changes, risks, retest checklist.
 
 ### 15.9 Prompt 09 â€” Conversion Script Engine
 ```text
-Implement the conversion_video script engine for Viprosell.
-Use the conversion_video package prompt, JSON schema validation, self-critique loop, and template library IDs:
+Implement the conversionvideo script engine for Viprosell.
+Use the conversionvideo package prompt, JSON schema validation, self-critique loop, and template library IDs:
 - CV-01 to CV-10
 
 Rules:

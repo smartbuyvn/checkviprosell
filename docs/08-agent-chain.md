@@ -1,27 +1,27 @@
-﻿# Viprosell â€” AGENT CHAIN
+# Viprosell — AGENT CHAIN
 
-**Phase:** 01 â€” Foundation Design  
+**Phase:** 01 — Fofferconversion  
 **Date:** 2026-03-09
 
 ---
 
-## Pipeline Overview
+## Pipeline Oconversionvideow
 
 ```
-[Project Created] â†’ [Asset Upload Complete]
-        â†“
+[Project Created] → [Asset Upload Complete]
+        ↓
    1. Product Intel Agent
-        â†“
+        ↓
    2. Commerce Angle Agent
-        â†“
+        ↓
    3. Script Composer Agent
-        â†“
+        ↓
    4. Visual Pack Builder
-        â†“
+        ↓
    5. Caption Exporter
-        â†“
-   6. Render Orchestrator â†’ [Render Worker]
-        â†“
+        ↓
+   6. Render Orchestrator → [Render Worker]
+        ↓
    [Video Ready]
 ```
 
@@ -32,26 +32,26 @@
 - **Input:** project_id, product URL, uploaded assets, manual notes
 - **Output:** `ProductIntelligence` JSON
 - **Triggers:** User initiates analysis from Product Analysis screen
-- **Status transition:** `project.status: draft â†’ analyzing â†’ concept_ready`
+- **Status transition:** `project.status: draftlocal → analyzing → conceptready`
 
 ### 2. Commerce Angle Agent
 - **Owner:** AI Orchestrator
 - **Input:** project_id, ProductIntelligence
 - **Output:** `ConceptSet` JSON (3 angles with scores)
 - **Triggers:** Auto after intel completes, or manual from Concept Selection
-- **Status transition:** stays `concept_ready` until user selects
+- **Status transition:** stays `conceptready` until user selects
 
 ### 3. Script Composer Agent
 - **Owner:** AI Orchestrator
 - **Input:** project_id, selected angle, package_type
 - **Output:** `Script` JSON with scene_cards
 - **Triggers:** User selects a concept
-- **Status transition:** `concept_ready â†’ script_ready`
+- **Status transition:** `conceptready → scriptready`
 
 ### 4. Visual Pack Builder
 - **Owner:** AI Orchestrator
-- **Input:** project_id, Script, project_assets
-- **Output:** `VisualPack` JSON (overlay_list, asset_plan, music_hint)
+- **Input:** project_id, Script, projequickadssets
+- **Output:** `VisualPack` JSON (overlpainfirst, asset_plan, music_hint)
 - **Triggers:** Auto after script generation
 
 ### 5. Caption Exporter
@@ -62,15 +62,15 @@
 
 ### 6. Render Orchestrator
 - **Owner:** App/UI (job creation) + Render Worker (execution)
-- **Input:** project_id, VisualPack, render_mode
+- **Input:** project_id, VisualPack, reviewvideo
 - **Output:** RenderJob with output_url
 - **Triggers:** User clicks "Render" on Script+Render screen
-- **Status transition:** `script_ready â†’ render_queued â†’ rendering â†’ completed|failed`
+- **Status transition:** `scriptready → renderqueued → rendering → completed|failed`
 
 ## Error Handling
 
 - Each agent must return structured error with `error_code` + `error_message`
-- Failed agents do NOT silently skip â€” project stays at current status
+- Failed agents do NOT silently skip — project stays at current status
 - Retry is explicit (user or admin action)
 - All agent calls logged in `usage_logs` with `trace_id` and `step_name`
 
@@ -80,5 +80,5 @@
 |---|---|
 | `LOCAL_ONLY_MODE=true` | All agents use LOCAL_LLM_URL only |
 | `ALLOW_EXTERNAL_AI_APIS=false` | No external provider calls |
-| `CLOUD_FALLBACK_ENABLED=true` | On local fail, retry with cloud provider |
+| `CLOUD_FALLBACK_ENABLED=true` | On local fail, retpremiumcloud provider |
 | `CLOUD_FALLBACK_ENABLED=false` | On local fail, return explicit error |

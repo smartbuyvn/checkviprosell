@@ -1,4 +1,4 @@
-﻿# Viprosell â€” API ROUTES
+# Viprosell â€” API ROUTES
 
 **Phase:** 01 â€” Foundation Design  
 **Date:** 2026-03-09
@@ -31,7 +31,7 @@
 | GET | `/api/renders/:id/status` | Check render status |
 | POST | `/api/projects/:id/export` | Export final video |
 | GET | `/api/affiliate/me` | Affiliate dashboard data |
-| GET | `/api/billing/history` | Payment history |
+| GET | `/api/billing/summary` | Billing summary & payment history |
 | POST | `/api/billing/checkout` | Initiate checkout |
 | GET | `/api/billing/credits` | Current credits balance |
 

@@ -1,4 +1,4 @@
-﻿# Viprosell â€” MASTER SOURCE OF TRUTH V1
+# Viprosell â€” MASTER SOURCE OF TRUTH V1
 
 ## 0. Má»¥c Ä‘Ã­ch tÃ i liá»‡u
 TÃ i liá»‡u nÃ y lÃ  báº£n mÃ´ táº£ thá»‘ng nháº¥t duy nháº¥t Ä‘á»ƒ Lovable triá»ƒn khai Viprosell theo Ä‘Ãºng trÃ¬nh tá»±, Ä‘Ãºng scope vÃ  Ä‘Ãºng cÃ¡c rÃ ng buá»™c kiáº¿n trÃºc Ä‘Ã£ chá»‘t.
@@ -11,9 +11,9 @@ Má»i tÃ i liá»‡u cÅ© chá»‰ cÃ²n giÃ¡ trá»‹ tham chiáº�
 ### 1.1 TuyÃªn bá»‘ chá»‘t
 Viprosell lÃ  web app SaaS táº¡o video bÃ¡n hÃ ng ngáº¯n cho seller/shop online tá»« link sáº£n pháº©m, 3â€“8 áº£nh hoáº·c 1 video máº«u.
 MVP chá»‰ cÃ³ 3 package:
-- `quick_ads`
-- `review_video`
-- `conversion_video`
+- `quickads`
+- `reviewvideo`
+- `conversionvideo`
 
 ### 1.2 North Star
 1. Viprosell lÃ  cÃ´ng cá»¥ táº¡o video bÃ¡n hÃ ng ngáº¯n, khÃ´ng pháº£i ná»n táº£ng AI video Ä‘a nÄƒng.
@@ -85,9 +85,9 @@ MÃ´ hÃ¬nh Ä‘Ãºng cho Viprosell lÃ :
 ### 3.1 Ba gÃ³i sáº£n pháº©m
 | Package | Má»¥c tiÃªu | Input | Output |
 |---|---|---|---|
-| `quick_ads` | Test sáº£n pháº©m nhanh | Link sáº£n pháº©m hoáº·c 3â€“8 áº£nh | Video 15â€“20s + hook + overlay + caption + CTA |
-| `review_video` | TÄƒng trust nhÆ° KOC/chá»§ shop | áº¢nh/video máº«u + persona review | Video 20â€“30s + script review + overlay + caption |
-| `conversion_video` | Äáº©y chuyá»ƒn Ä‘á»•i | Link/áº£nh + pain point + offer | Video 20â€“30s + script conversion + CTA máº¡nh + caption |
+| `quickads` | Test sáº£n pháº©m nhanh | Link sáº£n pháº©m hoáº·c 3â€“8 áº£nh | Video 15â€“20s + hook + overlay + caption + CTA |
+| `reviewvideo` | TÄƒng trust nhÆ° KOC/chá»§ shop | áº¢nh/video máº«u + persona review | Video 20â€“30s + script review + overlay + caption |
+| `conversionvideo` | Äáº©y chuyá»ƒn Ä‘á»•i | Link/áº£nh + pain point + offer | Video 20â€“30s + script conversion + CTA máº¡nh + caption |
 
 ### 3.2 Äáº§u vÃ o há»£p lá»‡
 - product URL
@@ -316,16 +316,16 @@ Cáº§n bá»• sung báº£ng `payments` tá»‘i thiá»ƒu:
 ## 8. Canonical naming vÃ  statuses
 
 ### 8.1 package_type
-- `quick_ads`
-- `review_video`
-- `conversion_video`
+- `quickads`
+- `reviewvideo`
+- `conversionvideo`
 
 ### 8.2 project.status
 - `draft`
 - `analyzing`
-- `concept_ready`
-- `script_ready`
-- `render_queued`
+- `conceptready`
+- `scriptready`
+- `renderqueued`
 - `rendering`
 - `completed`
 - `failed`
@@ -351,8 +351,8 @@ Cáº§n bá»• sung báº£ng `payments` tá»‘i thiá»ƒu:
 
 ### 8.6 render_mode
 - `draft_local`
-- `draft_local_tts`
-- `premium_cloud`
+- `draftlocaltts`
+- `premiumcloud`
 
 ---
 
@@ -431,7 +431,7 @@ Bá»• sung migration cuá»‘i cho cÃ¡c trÆ°á»ng sau:
 - `GET /api/renders/:id/status`
 - `POST /api/projects/:id/export`
 - `GET /api/affiliate/me`
-- `GET /api/billing/history`
+- `GET /api/billing/summary`
 - `POST /api/billing/checkout`
 
 ### 10.3 Admin only
@@ -520,7 +520,7 @@ Billing page pháº£i cÃ³:
   "objections": ["string"],
   "trust_signals": ["string"],
   "use_context": ["string"],
-  "recommended_package_fit": ["quick_ads", "review_video", "conversion_video"],
+  "recommended_package_fit": ["quickads", "reviewvideo", "conversionvideo"],
   "confidence_score": 0.0
 }
 ```
@@ -531,7 +531,7 @@ Billing page pháº£i cÃ³:
   "project_id": "uuid",
   "angles": [
     {
-      "angle_type": "pain_first|review_trust|offer_conversion",
+      "angle_type": "painfirst|reviewtrust|offerconversion",
       "title": "string",
       "big_idea": "string",
       "hook": "string",
@@ -548,7 +548,7 @@ Billing page pháº£i cÃ³:
 ```json
 {
   "project_id": "uuid",
-  "package_type": "quick_ads|review_video|conversion_video",
+  "package_type": "quickads|reviewvideo|conversionvideo",
   "duration_sec": 20,
   "script_text": "string",
   "scene_cards": [
@@ -568,7 +568,7 @@ Billing page pháº£i cÃ³:
 ```json
 {
   "project_id": "uuid",
-  "render_mode": "draft_local|draft_local_tts|premium_cloud",
+  "render_mode": "draft_local|draftlocaltts|premiumcloud",
   "aspect_ratio": "9:16",
   "subtitle_text": "string",
   "overlay_list": [

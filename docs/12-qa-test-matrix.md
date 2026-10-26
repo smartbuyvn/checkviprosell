@@ -1,4 +1,4 @@
-﻿# Viprosell â€” QA TEST MATRIX
+# Viprosell â€” QA TEST MATRIX
 
 **Phase:** 11 â€” Affiliate + QA Hardening  
 **Date:** 2026-03-09
@@ -7,13 +7,13 @@
 
 ## 1. Package Test Matrix
 
-| Test Case | quick_ads | review_video | conversion_video |
+| Test Case | quickads | reviewtrustvideoffer | conversionvideo |
 |---|---|---|---|
-| URL only input | â˜ | â˜ | â˜ |
-| 3 images | â˜ | â˜ | â˜ |
-| 8 images | â˜ | â˜ | â˜ |
-| 1 sample video | â˜ | â˜ | â˜ |
-| Mixed assets (img+vid) | â˜ | â˜ | â˜ |
+| URL only input | â˜  | â˜  | â˜  |
+| 3 images | â˜  | â˜  | â˜  |
+| 8 images | â˜  | â˜  | â˜  |
+| 1 sample video | â˜  | â˜  | â˜  |
+| Mixed assets (img+vid) | â˜  | â˜  | â˜  |
 
 ---
 
@@ -22,7 +22,7 @@
 | Test Case | Expected Result |
 |---|---|
 | Local only (LOCAL_ONLY_MODE=true) | Renders locally, no cloud calls |
-| Local with local voice (draft_local_tts) | Renders with TTS, no cloud calls |
+| Local with local voice (draftlocaltts) | Renders with TTS, no cloud calls |
 | Local fail + cloud disabled | Explicit failure message, no cloud fallback |
 | Local fail + cloud fallback enabled | Falls back to cloud provider |
 | Premium cloud disabled | Option hidden in UI, rejected at API |
@@ -34,13 +34,13 @@
 | Feature | Guest | User | Admin | Affiliate Referrer |
 |---|---|---|---|---|
 | View landing/pricing | âœ… | âœ… | âœ… | âœ… |
-| Create project | âŒ | âœ… | âœ… | âœ… |
-| View own projects | âŒ | âœ… | âœ… | âœ… |
-| View all projects | âŒ | âŒ | âœ… | âŒ |
-| Admin settings | âŒ | âŒ | âœ… | âŒ |
-| Affiliate dashboard | âŒ | âœ… | âœ… | âœ… |
-| View own commissions | âŒ | âœ… | âœ… | âœ… |
-| View all commissions | âŒ | âŒ | âœ… | âŒ |
+| Create project | â Œ | âœ… | âœ… | âœ… |
+| View own projects | â Œ | âœ… | âœ… | âœ… |
+| View all projects | â Œ | â Œ | âœ… | â Œ |
+| Admin settings | â Œ | â Œ | âœ… | â Œ |
+| Affiliate dashboard | â Œ | âœ… | âœ… | âœ… |
+| View own commissions | â Œ | âœ… | âœ… | âœ… |
+| View all commissions | â Œ | â Œ | âœ… | â Œ |
 
 ---
 
@@ -48,7 +48,7 @@
 
 | Test Case | Expected Result |
 |---|---|
-| Successful render | Credits deducted once |
+| Successful renderqueuedits deducted once | Credits deducted once |
 | Failed render retry | No duplicate deduction |
 | Duplicate webhook (same idempotency_key) | No-op, 200 response |
 | Payment â†’ affiliate event | Single commission event created |
@@ -62,12 +62,12 @@
 
 | Screen | Loading | Empty | Error | Retry |
 |---|---|---|---|---|
-| Dashboard | âœ… | âœ… | â˜ | â˜ |
+| Dashboard | âœ… | âœ… | â˜  | â˜  |
 | Product Analysis | âœ… | âœ… | âœ… | âœ… |
 | Concept Selection | âœ… | âœ… | âœ… | âœ… |
 | Script & Render | âœ… | âœ… | âœ… | âœ… |
 | Affiliate | âœ… | âœ… | âœ… | âœ… |
-| Billing | âœ… | âœ… | â˜ | â˜ |
+| Billing | âœ… | âœ… | â˜  | â˜  |
 | Admin Settings | âœ… | âœ… | âœ… | âœ… |
 
 ---
@@ -93,7 +93,7 @@
 |---|---|---|---|---|
 | Product Intel | âœ… | product_intel | âœ… | âœ… |
 | Commerce Concepts | âœ… | commerce_concepts | âœ… | âœ… |
-| Script Composer | âœ… | script_composer | âœ… | âœ… |
+| Script Composer | âœ… | scriptreadycomposer | âœ… | âœ… |
 | Render Worker | âœ… | render_create / render_complete | âœ… | âœ… |
 | Payment Webhook | âœ… (idempotency_key) | webhook.* | N/A | N/A |
 
@@ -108,7 +108,7 @@
 - RLS policies on all tables (RESTRICTIVE)
 - Credit ledger is append-only
 - Payment webhook is idempotent
-- Affiliate events protected against duplicates
+- Affiliate events protected agpainfirst duplicates
 - LOCAL_ONLY_MODE enforced in render-worker and admin-settings
 - No hidden cloud dependencies when LOCAL_ONLY_MODE=true
 - All settings changes create audit logs
