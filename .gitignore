@@ -46,3 +46,38 @@ id_rsa*
 
 # Dotenv vault key (không commit — chỉ lưu trong CI/CD secrets)
 .env.keys
+
+# ─── Script chứa credential thật — KHÔNG commit ───────────────────────────────
+# hostinger_ssh_api.py / setup_ssh_paramiko.py hardcode token + mật khẩu,
+# add-ssh-key-to-vps.ps1 nhúng HOSTINGER_TOKEN. Giữ ở máy, đừng đưa vào lịch sử.
+hostinger_ssh_api.py
+setup_ssh_paramiko.py
+add-ssh-key-to-vps.ps1
+upload_sftp.py
+
+# ─── Binary / artifact build — nặng, không thuộc source ───────────────────────
+ffmpeg/
+deploy_staging/
+*.zip
+*.tar.gz
+
+# ─── State cục bộ của Supabase CLI ────────────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+
+# ─── Sao lưu CSDL — chứa dữ liệu thật ─────────────────────────────────────────
+Sao luu csdl supabase/
+
+# ─── File nháp / một lần dùng ─────────────────────────────────────────────────
+3001
+check.sh
+nginx.tmp.conf
+scratch_*
+search_results.json
+test_bench.jpg
+vidiosell.code-profile
+fix-dict.cjs
+fix-domain.cjs
+fix-encoding*.cjs
+fix-encoding*.js
+fix-win1252.cjs
