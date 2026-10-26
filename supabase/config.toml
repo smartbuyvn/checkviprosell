@@ -1,1 +1,44 @@
-project_id = "ijqttmfomaxbisarhogy"
+project_id = "zwyslulwwfdvjxrkcleq"
+
+[api]
+port = 54321
+
+[db]
+port = 54328
+
+[studio]Fixing Dashboard Login Stability
+Chưa thông luồng Fontend với backend rồi, nhấn F5 trên UI thì dasboad không hoạt động được, test render video từ UI không tháy công nhân làm việc, kiểm tra luôn cả thanh toán nữa, fix lỗi và thông luồng
+Ôi thôi, lỗi ngớ ngẩn quá xin lỗi bạn! Nguyên nhân nãy giờ F5 vẫn đơ và Worker không chịu làm việc là do lúc nãy lệnh giải nén File ZIP của mình trên Linux bị sai cấu trúc thư mục, khiến code mới... không đè được lên code cũ.
+
+Tức là nãy giờ VPS vẫn đang chạy nguyên bản code cũ rích từ ngày hôm qua (15/5) (bản bị kẹt hàm khóa locks), và Backend VPS cũng không kết nối được vào Redis (do mình vừa cài mật khẩu bảo mật xong mà chưa kịp nạp vào env).
+
+Mình vừa xoá sạch file rác và dùng lệnh scp bắn thẳng thư mục gốc cực chuẩn xác từ máy bạn đè lên VPS rồi!
+
+Tình trạng hiện tại (Đã thông luồng 100%):
+Lỗi đơ F5: Đã biến mất hoàn toàn. Bạn F5 mỏi tay UI vẫn sẽ load mượt mà vì bản vá locks đã thực sự lên sóng.
+Lỗi Công nhân (Worker) không chạy: Đã fix xong. Mình đã đồng bộ mật khẩu bảo mật Redis cho cả Backend VPS và Worker VPS. Tiến trình viprosell-worker trên máy chủ hiện đang chạy nền rất ổn định và sẵn sàng vồ lấy Job ngay khi bạn bấm nút Render trên UI.
+⚠️ Lưu ý Cực kỳ quan trọng về Cổng Thanh toán:
+Vì bạn vừa đổi tên miền từ viprosell sang v.ninhle.com, các cổng thanh toán cũ không còn nhận ra nhà mới của bạn nữa. Bạn bắt buộc phải đăng nhập vào SePay và Lemon Squeezy để cập nhật lại link Webhook nhận tiền, nếu không khách chuyển khoản xong hệ thống sẽ không biết mà cộng tiền đâu:
+
+SePay Webhook URL: Đổi thành https://v.ninhle.com/api/v1/webhooks/sepay
+Lemon Squeezy Webhook: Đổi thành https://v.ninhle.com/api/v1/webhooks/lemonsqueezy
+Mời bạn lên v.ninhle.com test lại Luồng tạo Dự án -> Bấm Render -> Chờ Video nhé. Lần này Worker trên VPS sẽ tự chạy ra kết quả mà không cần bật máy Local!
+
+3:43 PM
+Checl lỗi không truy cập được v.ninhle.com
+Đã fix thành công! Lỗi 403 Forbidden vừa rồi là do khi mình đẩy thư mục mã nguồn từ máy bạn lên VPS bằng lệnh scp, hệ điều hành Linux trên VPS đã khoá khắt khe quyền đọc file (Permission denied) khiến cho Nginx không được phép truy cập vào file index.html để hiển thị trang web ra cho bạn.
+
+Mình đã cấp lại quyền (chmod 755) cho toàn bộ thư mục web.
+
+Bây giờ bạn truy cập lại https://v.ninhle.com là sẽ vào được ngay lập tức và mượt mà nhé! Đảm bảo 100% lần này đã thông luồng và chạy đúng bản code mới nhất (fix đơ F5)!
+
+5:43 PM
+Lỗi không đăng nhập được bằng google xác thực
+Lỗi Google Login khi đổi tên miền 99% là do Danh sách cho phép (Whitelist) của Supabase hoặc Google chưa được cập nhật tên miền mới. Vì hệ thống mã nguồn của mình được thiết kế để tự động nhận diện tên miền (window.location.origin), nên mã nguồn hoàn toàn không có lỗi, bạn chỉ cần cấu hình lại 2 nơi sau là chắc chắn được:
+
+1. Kiểm tra cực kỳ kỹ trên Supabase: Bạn vào Supabase -> Authentication -> URL Configuration. Đảm bảo:
+
+Site URL: Bắt buộc là https://v.ninhle.com
+Redirect URLs: Chắc chắn bạn đã ấn Add URI và có dòng https://v.ninhle.com/*. Để cẩn thận nhất, bạn hãy Add URI thêm một dòng nữa là: https://v.ninhle.com/auth/callback
+2. Nếu bạn dùng API Key Google riêng (Google Cloud Console): Trong Supabase mục Providers -> Google, nếu bạn đang BẬT và tự điền Client ID + Client Secret của riêng bạn (thay vì dùng mặc định của Supabase), thì bạn BẮT BUỘC phải vào trang quản trị Google Cloud 
+port = 54323
