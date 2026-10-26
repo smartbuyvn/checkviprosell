@@ -121,11 +121,17 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({ error: 'Payment insert failed' });
       }
 
-      // Mark any pending sepay records as paid/obsolete
-      await supabase.from('payments')
-         .update({ status: 'obsolete' })
+      // Các ý định thanh toán cũ còn treo 'pending' của user này coi như không thành:
+      // họ đã trả bằng mã khác. Enum payment_status chỉ có pending|paid|failed|refunded,
+      // nên dùng 'failed' — 'obsolete' không tồn tại và Postgres sẽ từ chối cả câu lệnh.
+      const { error: staleErr } = await supabase.from('payments')
+         .update({ status: 'failed' })
          .eq('user_id', userId)
-         .eq('status', 'pending');
+         .eq('status', 'pending')
+         .neq('id', paymentRow.id);
+      if (staleErr) {
+        fastify.log.warn(`[SePay Webhook] Không dọn được payment treo của ${userId}: ${staleErr.message}`);
+      }
 
       // Buyer +10% bonus
       let finalCreditsToGrant = creditsToGrant;
