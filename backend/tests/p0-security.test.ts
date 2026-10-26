@@ -39,9 +39,12 @@ test('safeEqual compares exactly', async () => {
   assert.equal(safeEqual('abc', 'abcd'), false);
 });
 
-test('Stripe webhook rejects events when STRIPE_WEBHOOK_SECRET is missing', async () => {
+test('Stripe and PayPal webhooks no longer exist', async () => {
   const { webhookRoutes } = await import('../src/routes/webhooks');
   const app = await buildApp(webhookRoutes, '/api/v1/webhooks');
+
+  // Dự án không dùng Stripe (không có route tạo thanh toán, không có khóa).
+  // Webhook cũ nhận sự kiện không chữ ký và cộng credit tùy ý → đã xóa hẳn.
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/webhooks/stripe',
@@ -50,7 +53,30 @@ test('Stripe webhook rejects events when STRIPE_WEBHOOK_SECRET is missing', asyn
       data: { object: { client_reference_id: '00000000-0000-0000-0000-000000000000', metadata: { credits: '999999' } } },
     },
   });
-  assert.equal(res.statusCode, 503);
+  assert.equal(res.statusCode, 404, 'route /stripe lẽ ra đã bị xóa');
+
+  const paypal = await app.inject({ method: 'POST', url: '/api/v1/webhooks/paypal', payload: {} });
+  assert.equal(paypal.statusCode, 404, 'route /paypal lẽ ra đã bị xóa');
+
+  await app.close();
+});
+
+test('SePay webhook still works after removing Stripe', async () => {
+  const { webhookRoutes } = await import('../src/routes/webhooks');
+  const app = await buildApp(webhookRoutes, '/api/v1/webhooks');
+
+  // Luồng mua gói đi qua đây: VietQR -> chuyển khoản -> webhook này cộng credit.
+  // Xóa Stripe cũng gỡ luôn content-type parser cũ, nên phải chắc JSON vẫn đọc được.
+  process.env.SEPAY_WEBHOOK_SECRET = 'sepay-test-secret';
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/webhooks/sepay',
+    payload: { transferType: 'out', content: 'probe' },
+    headers: { authorization: 'Apikey sepay-test-secret' },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().note, 'ignored_not_in_or_no_content');
+  delete process.env.SEPAY_WEBHOOK_SECRET;
   await app.close();
 });
 

@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { BillingService } from '../services/billing.service';
 import { getVerifiedUserId } from '../lib/auth';
-import Stripe from 'stripe';
 
 export async function billingRoutes(fastify: FastifyInstance) {
   /**
