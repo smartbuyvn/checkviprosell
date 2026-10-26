@@ -1,5 +1,5 @@
-﻿/**
- * Viprosell â€” Landing Page
+/**
+ * Viprosell — Landing Page
  * Full conversion-ready landing with all sections.
  */
 
@@ -32,23 +32,23 @@ const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
 const DEMO_ITEMS = [
-  { packageBadge: 'Quick Ads', title: 'Son dÆ°á»¡ng mÃ´i â€” Test Ads 15s', hook: '"ÄÃ´i mÃ´i khÃ´ ná»©t? Thá»­ ngay son dÆ°á»¡ng nÃ y!"', duration: '15s' },
-  { packageBadge: 'Quick Ads', title: 'Kem chá»‘ng náº¯ng â€” Flash Ad', hook: '"Da báº¡n Ä‘ang bá»‹ náº¯ng háº¡i má»—i ngÃ y"', duration: '18s' },
-  { packageBadge: 'Review Video', title: 'Serum Vitamin C â€” Bestie Review', hook: '"MÃ¬nh dÃ¹ng 2 tuáº§n, da sÃ¡ng háº³n!"', duration: '25s' },
-  { packageBadge: 'Review Video', title: 'Ão thun basic â€” Shop Owner Review', hook: '"Cháº¥t cotton má»‹n, máº·c cáº£ ngÃ y khÃ´ng ngÃ¡n"', duration: '22s' },
-  { packageBadge: 'Conversion', title: 'MÃ¡y rá»­a máº·t â€” Pain-to-Sale', hook: '"Rá»­a máº·t báº±ng tay = 70% bá»¥i báº©n cÃ²n láº¡i"', duration: '28s' },
-  { packageBadge: 'Conversion', title: 'Bá»™ chÄƒm sÃ³c da â€” Offer CTA', hook: '"Giáº£m 40% chá»‰ hÃ´m nay â€” combo 3 bÆ°á»›c"', duration: '25s' },
+  { packageBadge: 'Quick Ads', title: 'Son dưỡng môi — Test Ads 15s', hook: '"Đôi môi khô nứt? Thử ngay son dưỡng này!"', duration: '15s' },
+  { packageBadge: 'Quick Ads', title: 'Kem chống nắng — Flash Ad', hook: '"Da bạn đang bị nắng hại mỗi ngày"', duration: '18s' },
+  { packageBadge: 'Review Video', title: 'Serum Vitamin C — Bestie Review', hook: '"Mình dùng 2 tuần, da sáng hẳn!"', duration: '25s' },
+  { packageBadge: 'Review Video', title: 'Áo thun basic — Shop Owner Review', hook: '"Chất cotton mịn, mặc cả ngày không ngán"', duration: '22s' },
+  { packageBadge: 'Conversion', title: 'Máy rửa mặt — Pain-to-Sale', hook: '"Rửa mặt bằng tay = 70% bụi bẩn còn lại"', duration: '28s' },
+  { packageBadge: 'Conversion', title: 'Bộ chăm sóc da — Offer CTA', hook: '"Giảm 40% chỉ hôm nay — combo 3 bước"', duration: '25s' },
 ];
 
 const FAQ_ITEMS = [
-  { q: 'Cáº§n bao nhiÃªu áº£nh sáº£n pháº©m?', a: 'Tá»‘i thiá»ƒu 3 áº£nh, tá»‘i Ä‘a 8 áº£nh. áº¢nh rÃµ nÃ©t, nhiá»u gÃ³c, cÃ³ áº£nh Ä‘ang sá»­ dá»¥ng lÃ  tá»‘t nháº¥t.' },
-  { q: 'Chá»‰ cÃ³ link sáº£n pháº©m, khÃ´ng cÃ³ áº£nh riÃªng?', a: 'Viprosell sáº½ tá»± crawl áº£nh tá»« link sáº£n pháº©m náº¿u báº¡n chá»‰ dÃ¡n URL. Báº¡n cÃ³ thá»ƒ bá»• sung áº£nh riÃªng sau.' },
-  { q: 'CÃ³ cáº§n quay video má»›i khÃ´ng?', a: 'KhÃ´ng báº¯t buá»™c. Viprosell dá»±ng video tá»« áº£nh sáº£n pháº©m tháº­t + overlay text + subtitle. Náº¿u cÃ³ video sáºµn, báº¡n upload Ä‘á»ƒ lÃ m rich hÆ¡n.' },
-  { q: 'App cÃ³ cháº¡y Ä‘Æ°á»£c khi táº¯t cloud khÃ´ng?', a: 'CÃ³. Viprosell lÃ  local-first â€” táº¥t cáº£ phÃ¢n tÃ­ch, script, render draft Ä‘á»u cháº¡y trÃªn mÃ¡y. Cloud chá»‰ lÃ  tÃ¹y chá»n premium.' },
-  { q: 'KhÃ¡c gÃ¬ video AI full generative (Sora, Runway)?', a: 'Viprosell táº¡o video tá»« áº£nh/video sáº£n pháº©m tháº­t â€” khÃ´ng AI sinh áº£nh giáº£. Káº¿t quáº£ chÃ¢n tháº­t, phÃ¹ há»£p bÃ¡n hÃ ng trÃªn TikTok/Reels.' },
-  { q: 'CÃ³ xuáº¥t caption, subtitle khÃ´ng?', a: 'CÃ³. Má»—i video Ä‘i kÃ¨m caption TikTok, Reels, hashtag, subtitle text, vÃ  thumbnail text.' },
-  { q: 'CÃ³ chÆ°Æ¡ng trÃ¬nh affiliate khÃ´ng?', a: 'CÃ³. Báº¡n giá»›i thiá»‡u báº¡n bÃ¨, nháº­n hoa há»“ng cho má»—i ngÆ°á»i dÃ¹ng tráº£ phÃ­.' },
-  { q: 'Render video á»Ÿ Ä‘Ã¢u?', a: 'Máº·c Ä‘á»‹nh render draft trÃªn mÃ¡y (local). Náº¿u báº­t premium render, cÃ³ thá»ƒ render cháº¥t lÆ°á»£ng cao trÃªn cloud.' },
+  { q: 'Cần bao nhiêu ảnh sản phẩm?', a: 'Tối thiểu 3 ảnh, tối đa 8 ảnh. Ảnh rõ nét, nhiều góc, có ảnh đang sử dụng là tốt nhất.' },
+  { q: 'Chỉ có link sản phẩm, không có ảnh riêng?', a: 'Bạn vẫn cần tải lên ít nhất 3 ảnh. Link sản phẩm được lưu làm ngữ cảnh để AI viết script sát hơn, nhưng Viprosell chưa tự lấy ảnh từ link.' },
+  { q: 'Có cần quay video mới không?', a: 'Không bắt buộc. Viprosell dựng video từ ảnh sản phẩm thật + overlay text + subtitle. Nếu có video sẵn, bạn upload để làm rich hơn.' },
+  { q: 'Tôi có cần cài gì trên máy không?', a: 'Không. Viprosell chạy hoàn toàn trên web: bạn tải ảnh lên, hệ thống xử lý rồi trả video về. Không cần cài FFmpeg, không cần máy cấu hình cao.' },
+  { q: 'Khác gì video AI full generative (Sora, Runway)?', a: 'Viprosell tạo video từ ảnh/video sản phẩm thật — không AI sinh ảnh giả. Kết quả chân thật, phù hợp bán hàng trên TikTok/Reels.' },
+  { q: 'Có xuất caption, subtitle không?', a: 'Có. Mỗi video đi kèm caption TikTok, Reels, hashtag, subtitle text, và thumbnail text.' },
+  { q: 'Có chương trình affiliate không?', a: 'Có. Bạn giới thiệu bạn bè, nhận hoa hồng cho mỗi người dùng trả phí.' },
+  { q: 'Render video ở đâu?', a: 'Trên hệ thống render của Viprosell. Bạn chỉ cần chờ rồi tải video về — thường vài phút tuỳ độ dài video.' },
 ];
 
 const Landing = () => {
@@ -72,49 +72,55 @@ const Landing = () => {
           <motion.div initial="hidden" animate="visible" variants={stagger} className="max-w-3xl mx-auto text-center">
             <motion.div variants={fadeUp}>
               <span className="inline-block text-xs font-medium tracking-wider uppercase text-primary mb-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-                Video bÃ¡n hÃ ng tá»« áº£nh sáº£n pháº©m tháº­t
+                Video bán hàng từ ảnh sản phẩm thật
               </span>
             </motion.div>
             <motion.h1 variants={fadeUp} className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-5 leading-[1.1]">
-              Táº¡o video bÃ¡n hÃ ng ngáº¯n
+              Tạo video bán hàng
               <br />
-              <span className="text-gradient-primary">chá»‘t Ä‘Æ¡n trÃªn TikTok & Reels</span>
+              <span className="text-gradient-primary">chốt đơn trên TikTok & Reels</span>
             </motion.h1>
             <motion.p variants={fadeUp} className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
-              Upload 3â€“8 áº£nh hoáº·c dÃ¡n link sáº£n pháº©m. AI phÃ¢n tÃ­ch, viáº¿t script, dá»±ng video vá»›i áº£nh tháº­t â€” khÃ´ng cáº§n quay má»›i, khÃ´ng cáº§n ká»¹ nÄƒng edit.
+              Upload 3–8 ảnh hoặc dán link sản phẩm. AI phân tích, viết script, dựng video với ảnh thật — không cần quay mới, không cần kỹ năng edit.
             </motion.p>
 
             {/* Dual CTA inputs */}
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-5">
               <div className="flex-1 relative">
                 <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="DÃ¡n link sáº£n pháº©m..." className="pl-9 bg-card border-border" readOnly />
+                <Input placeholder="Dán link sản phẩm..." className="pl-9 bg-card border-border" readOnly />
               </div>
-              <Link to={ROUTES.SIGNUP}>
-                <Button className="glow-primary font-display w-full sm:w-auto whitespace-nowrap">
-                  <Sparkles className="w-4 h-4 mr-1.5" /> Táº¡o video ngay
+              <Link to={ROUTES.SIGNUP} className="w-full sm:w-auto">
+                <Button className="glow-primary font-display w-full sm:w-auto whitespace-nowrap text-white hover:text-white">
+                  <Sparkles className="w-4 h-4 mr-1.5" /> Tạo video ngay
                 </Button>
               </Link>
             </motion.div>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
               <Link to={ROUTES.SIGNUP}>
                 <Button variant="outline" size="sm">
-                  <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload áº£nh / video
+                  <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload ảnh / video
                 </Button>
               </Link>
               <a href="#demo">
                 <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <Play className="w-3.5 h-3.5 mr-1.5" /> Xem demo Ä‘áº§u ra
+                  <Play className="w-3.5 h-3.5 mr-1.5" /> Xem demo đầu ra
                 </Button>
               </a>
             </motion.div>
 
             {/* Trust microcopy */}
             <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> Video trong 3 phÃºt</span>
-              <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary" /> Local-first, báº£o máº­t</span>
-              <span className="flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-primary" /> DÃ¹ng áº£nh tháº­t, khÃ´ng AI giáº£</span>
+              <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> Video trong 3 phút</span>
+              <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary" /> Local-first, bảo mật</span>
+              <span className="flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-primary" /> Dùng ảnh thật, không AI giả</span>
             </motion.div>
+          </motion.div>
+          
+          {/* HERO IMAGE SECTION */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }} className="mt-16 max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-border/50 relative">
+             <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent z-10 pointer-events-none" />
+             <img src="/assets/hero_banner_tech.png" alt="Viprosell Workspace" className="w-full h-auto object-cover transform hover:scale-[1.02] transition-transform duration-700" />
           </motion.div>
         </div>
       </section>
@@ -123,32 +129,32 @@ const Landing = () => {
       <section id="packages" className="py-20 bg-gradient-section">
         <div className="container px-4">
           <SectionHeader
-            badge="3 gÃ³i dá»‹ch vá»¥"
-            title="Chá»n Ä‘Ãºng loáº¡i video cho má»¥c tiÃªu bÃ¡n hÃ ng"
-            subtitle="Má»—i gÃ³i tá»‘i Æ°u cho má»™t má»¥c Ä‘Ã­ch cá»¥ thá»ƒ â€” test ads, review, hoáº·c chá»‘t Ä‘Æ¡n."
+            badge="3 gói dịch vụ"
+            title="Chọn đúng loại video cho mục tiêu bán hàng"
+            subtitle="Mỗi gói tối ưu cho một mục đích cụ thể — test ads, review, hoặc chốt đơn."
           />
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             <PackageCard
               name="Quick Ads"
               tagline="Video test nhanh"
-              useCase="Táº¡o video quáº£ng cÃ¡o 15â€“20s Ä‘á»ƒ test sáº£n pháº©m trÃªn TikTok Ads, Reels Ads."
-              duration="15â€“20 giÃ¢y"
-              benefits={['Hook máº¡nh', '1â€“2 USP', 'CTA rÃµ', 'Test nhanh']}
+              useCase="Tạo video quảng cáo 15–20s để test sản phẩm trên TikTok Ads, Reels Ads."
+              duration="15–20 giây"
+              benefits={['Hook mạnh', '1–2 USP', 'CTA rõ', 'Test nhanh']}
             />
             <PackageCard
               name="Review Video"
-              tagline="Video review tÄƒng trust"
-              useCase="Video review phong cÃ¡ch KOC / bestie / chá»§ shop, tÄƒng niá»m tin Ä‘á»ƒ khÃ¡ch mua."
-              duration="20â€“30 giÃ¢y"
-              benefits={['Giá»ng vÄƒn Ä‘á»i thÆ°á»ng', 'Chi tiáº¿t sáº£n pháº©m', 'CTA má»m', '3 hooks']}
+              tagline="Video review tăng trust"
+              useCase="Video review phong cách KOC / bestie / chủ shop, tăng niềm tin để khách mua."
+              duration="20–30 giây"
+              benefits={['Giọng văn đời thường', 'Chi tiết sản phẩm', 'CTA mềm', '3 hooks']}
               featured
             />
             <PackageCard
               name="Conversion Video"
-              tagline="Video chá»‘t Ä‘Æ¡n"
-              useCase="Video tá»‘i Æ°u chuyá»ƒn Ä‘á»•i: pain â†’ proof â†’ offer â†’ urgency â†’ CTA trá»±c tiáº¿p."
-              duration="20â€“30 giÃ¢y"
-              benefits={['Pain rÃµ', 'Proof sá»›m', 'Offer máº¡nh', 'CTA trá»±c tiáº¿p']}
+              tagline="Video chốt đơn"
+              useCase="Video tối ưu chuyển đổi: pain → proof → offer → urgency → CTA trực tiếp."
+              duration="20–30 giây"
+              benefits={['Pain rõ', 'Proof sớm', 'Offer mạnh', 'CTA trực tiếp']}
             />
           </div>
         </div>
@@ -159,8 +165,8 @@ const Landing = () => {
         <div className="container px-4">
           <SectionHeader
             badge="Xem demo"
-            title="Video Ä‘áº§u ra trÃ´ng nhÆ° tháº¿ nÃ o?"
-            subtitle="Má»—i video Ä‘Æ°á»£c táº¡o tá»« áº£nh sáº£n pháº©m tháº­t + script AI + overlay text + subtitle."
+            title="Video đầu ra trông như thế nào?"
+            subtitle="Mỗi video được tạo từ ảnh sản phẩm thật + script AI + overlay text + subtitle."
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 max-w-5xl mx-auto">
             {DEMO_ITEMS.map((item, i) => (
@@ -176,14 +182,14 @@ const Landing = () => {
       <section className="py-20 bg-gradient-section">
         <div className="container px-4">
           <SectionHeader
-            badge="Quy trÃ¬nh"
-            title="4 bÆ°á»›c tá»« áº£nh Ä‘áº¿n video bÃ¡n hÃ ng"
+            badge="Quy trình"
+            title="4 bước từ ảnh đến video bán hàng"
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
-            <StepCard step={1} icon={Package} title="Chá»n gÃ³i" description="Quick Ads, Review Video, hoáº·c Conversion Video." />
-            <StepCard step={2} icon={Upload} title="DÃ¡n link / upload" description="DÃ¡n URL sáº£n pháº©m hoáº·c upload 3â€“8 áº£nh vÃ  1 video máº«u." />
-            <StepCard step={3} icon={Brain} title="AI phÃ¢n tÃ­ch & viáº¿t script" description="AI phÃ¢n tÃ­ch sáº£n pháº©m, táº¡o commerce angle, viáº¿t script + CTA." />
-            <StepCard step={4} icon={Clapperboard} title="Render video" description="Dá»±ng video tá»« áº£nh tháº­t + overlay + subtitle. Local draft máº·c Ä‘á»‹nh." />
+            <StepCard step={1} icon={Package} title="Chọn gói" description="Quick Ads, Review Video, hoặc Conversion Video." />
+            <StepCard step={2} icon={Upload} title="Dán link / upload" description="Dán URL sản phẩm hoặc upload 3–8 ảnh và 1 video mẫu." />
+            <StepCard step={3} icon={Brain} title="AI phân tích & viết script" description="AI phân tích sản phẩm, tạo commerce angle, viết script + CTA." />
+            <StepCard step={4} icon={Clapperboard} title="Render video" description="Dựng video từ ảnh thật + overlay + subtitle. Local draft mặc định." />
           </div>
         </div>
       </section>
@@ -192,53 +198,49 @@ const Landing = () => {
       <section id="features" className="py-20 bg-gradient-section-alt">
         <div className="container px-4">
           <SectionHeader
-            badge="TÃ­nh nÄƒng"
-            title="Táº¡i sao chá»n Viprosell?"
-            subtitle="CÃ´ng cá»¥ táº¡o video bÃ¡n hÃ ng duy nháº¥t táº­p trung 100% vÃ o seller â€” khÃ´ng pháº£i entertainment."
+            badge="Tính năng"
+            title="Tại sao chọn Viprosell?"
+            subtitle="Công cụ tạo video bán hàng duy nhất tập trung 100% vào seller — không phải entertainment."
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-5xl mx-auto">
-            <FeatureCard icon={Package} title="3 gÃ³i Ä‘Ãºng nhu cáº§u" description="Má»—i gÃ³i tá»‘i Æ°u cho 1 má»¥c tiÃªu bÃ¡n hÃ ng cá»¥ thá»ƒ." />
-            <FeatureCard icon={ImageIcon} title="Asset-first" description="DÃ¹ng áº£nh/video sáº£n pháº©m tháº­t â€” khÃ´ng AI táº¡o hÃ¬nh giáº£." />
-            <FeatureCard icon={Brain} title="AI viáº¿t script & CTA" description="AI phÃ¢n tÃ­ch sáº£n pháº©m, viáº¿t hook, script, caption, CTA." />
-            <FeatureCard icon={ShieldCheck} title="Local-first" description="Má»i thá»© cháº¡y trÃªn mÃ¡y. Cloud chá»‰ lÃ  tÃ¹y chá»n premium." />
-            <FeatureCard icon={Subtitles} title="Caption & Subtitle" description="Tá»± Ä‘á»™ng táº¡o subtitle, caption TikTok/Reels, hashtag." />
-            <FeatureCard icon={LayoutDashboard} title="Dashboard quáº£n lÃ½" description="Quáº£n lÃ½ project, theo dÃµi tráº¡ng thÃ¡i, lá»‹ch sá»­ render." />
-            <FeatureCard icon={CreditCard} title="Billing minh báº¡ch" description="Há»‡ thá»‘ng credits rÃµ rÃ ng, thanh toÃ¡n an toÃ n." />
-            <FeatureCard icon={Users} title="Affiliate program" description="Giá»›i thiá»‡u báº¡n bÃ¨, nháº­n hoa há»“ng má»—i lÆ°á»£t mua." />
+            <FeatureCard icon={Package} title="3 gói đúng nhu cầu" description="Mỗi gói tối ưu cho 1 mục tiêu bán hàng cụ thể." />
+            <FeatureCard icon={ImageIcon} title="Asset-first" description="Dùng ảnh/video sản phẩm thật — không AI tạo hình giả." />
+            <FeatureCard icon={Brain} title="AI viết script & CTA" description="AI phân tích sản phẩm, viết hook, script, caption, CTA." />
+            <FeatureCard icon={ShieldCheck} title="Local-first" description="Mọi thứ chạy trên máy. Cloud chỉ là tùy chọn premium." />
+            <FeatureCard icon={Subtitles} title="Caption & Subtitle" description="Tự động tạo subtitle, caption TikTok/Reels, hashtag." />
+            <FeatureCard icon={LayoutDashboard} title="Dashboard quản lý" description="Quản lý project, theo dõi trạng thái, lịch sử render." />
+            <FeatureCard icon={CreditCard} title="Billing minh bạch" description="Hệ thống credits rõ ràng, thanh toán an toàn." />
+            <FeatureCard icon={Users} title="Affiliate program" description="Giới thiệu bạn bè, nhận hoa hồng mỗi lượt mua." />
           </div>
         </div>
       </section>
 
-      {/* =================== OUTCOMES =================== */}
-      <section className="py-20 bg-gradient-section">
+      {/* =================== REAL-WORLD DEMOS =================== */}
+      <section className="py-20 bg-gradient-section overflow-hidden">
         <div className="container px-4">
           <SectionHeader
-            badge="Káº¿t quáº£ thá»±c táº¿"
-            title="Tá»« nguyÃªn liá»‡u â†’ video bÃ¡n hÃ ng"
-            subtitle="KhÃ´ng cáº§n quay phim, khÃ´ng cáº§n editor. Chá»‰ cáº§n áº£nh sáº£n pháº©m."
+            badge="Kết quả thực tế"
+            title="Đẳng cấp chuyên nghiệp trên mọi thiết bị"
+            subtitle="Từ Quick Ads ngắn gọn đến Review chi tiết, Viprosell tự động tối ưu tỷ lệ khung hình và nội dung."
           />
-          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
-            {[
-              { icon: Link2, before: 'Link sáº£n pháº©m Shopee/Tiki', after: 'Video test ads 15s cháº¡y TikTok Ads' },
-              { icon: ImageIcon, before: '5 áº£nh sáº£n pháº©m chá»¥p Ä‘iá»‡n thoáº¡i', after: 'Video review style KOC 25s' },
-              { icon: Target, before: 'Pain point khÃ¡ch hÃ ng', after: 'Video chá»‘t Ä‘Æ¡n painâ†’proofâ†’offer 28s' },
-            ].map((item, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="rounded-xl p-5 bg-surface shadow-card"
-              >
-                <item.icon className="w-8 h-8 text-primary mb-3" />
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">TrÆ°á»›c</span>
-                    <p className="text-sm text-muted-foreground">{item.before}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-primary/15 text-primary">Sau</span>
-                    <p className="text-sm text-foreground font-medium">{item.after}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto mt-10">
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-purple-500/30 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500" />
+              <img src="/assets/quick_ads_demo.png" alt="Quick Ads Demo" className="relative rounded-xl border border-border shadow-2xl w-full object-cover" />
+              <div className="absolute bottom-6 left-6 right-6 bg-background/80 backdrop-blur-md p-4 rounded-lg border border-white/10 shadow-lg">
+                <h4 className="font-display font-semibold text-foreground mb-1">Quick Ads cho Di động</h4>
+                <p className="text-sm text-muted-foreground">Tối ưu dọc 9:16 cho TikTok & Reels với Hook siêu mạnh.</p>
+              </div>
+            </motion.div>
+            
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="relative group mt-12 md:mt-0">
+              <div className="absolute -inset-1 bg-gradient-to-l from-primary/30 to-blue-500/30 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500" />
+              <img src="/assets/review_demo.png" alt="Review Video Demo" className="relative rounded-xl border border-border shadow-2xl w-full object-cover" />
+              <div className="absolute bottom-6 left-6 right-6 bg-background/80 backdrop-blur-md p-4 rounded-lg border border-white/10 shadow-lg">
+                <h4 className="font-display font-semibold text-foreground mb-1">Product Review chuyên sâu</h4>
+                <p className="text-sm text-muted-foreground">Bố cục ngang dọc tùy chỉnh, script tự nhiên chốt đơn mượt mà.</p>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -247,53 +249,57 @@ const Landing = () => {
       <section id="pricing" className="py-20 bg-gradient-section-alt">
         <div className="container px-4">
           <SectionHeader
-            badge="Báº£ng giÃ¡"
-            title="GiÃ¡ minh báº¡ch, khÃ´ng phÃ­ áº©n"
-            subtitle="Chá»n gÃ³i phÃ¹ há»£p, nÃ¢ng cáº¥p báº¥t ká»³ lÃºc nÃ o."
+            badge="Bảng giá"
+            title="Giá minh bạch, không phí ẩn"
+            subtitle="Chọn gói phù hợp, nâng cấp bất kỳ lúc nào."
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             <PricingCard
               name="Free"
-              price="Miá»…n phÃ­"
-              period="thÃ¡ng"
+              price="Miễn phí"
+              period="tháng"
               description="5 credits"
-              features={['5 credits miá»…n phÃ­', 'Draft local render', '3 loáº¡i video', 'Overlay cÆ¡ báº£n']}
-              ctaLabel="Báº¯t Ä‘áº§u miá»…n phÃ­"
+              features={['5 credits miễn phí', 'Draft local render', '3 loại video', 'Overlay cơ bản']}
+              ctaLabel="Bắt đầu miễn phí"
               onCta={() => handlePlanSelect('free')}
             />
             <PricingCard
               name="Pro"
-              price="130.000â‚«"
-              period="thÃ¡ng"
+              price="130.000₫"
+              period="tháng"
               description="50 credits"
-              features={['50 credits/thÃ¡ng', 'Draft + Voice render', 'Æ¯u tiÃªn AI xá»­ lÃ½', 'Táº¥t cáº£ loáº¡i video', 'Xuáº¥t caption']}
+              features={['50 credits/tháng', 'Draft + Voice render', 'Ưu tiên AI xử lý', 'Tất cả loại video', 'Xuất caption']}
               featured
-              ctaLabel="Chá»n Pro"
+              ctaLabel="Chọn Pro"
               onCta={() => handlePlanSelect('pro')}
             />
             <PricingCard
               name="Business"
-              price="250.000â‚«"
-              period="thÃ¡ng"
+              price="250.000₫"
+              period="tháng"
               description="110 credits"
-              features={['110 credits/thÃ¡ng', 'Premium cloud render', 'Há»— trá»£ Æ°u tiÃªn', 'Táº¥t cáº£ tÃ­nh nÄƒng', 'API access']}
-              ctaLabel="Chá»n Business"
+              features={['110 credits/tháng', 'Premium cloud render', 'Hỗ trợ ưu tiên', 'Tất cả tính năng', 'API access']}
+              ctaLabel="Chọn Business"
               onCta={() => handlePlanSelect('business')}
             />
             <PricingCard
               name="Premium"
-              price="520.000â‚«"
-              period="thÃ¡ng"
+              price="520.000₫"
+              period="tháng"
               description="240 credits"
-              features={['240 credits/thÃ¡ng', 'Premium cloud render', 'Dá»± Ã¡n khÃ´ng giá»›i háº¡n', 'KhÃ´ng watermark', 'Custom branding']}
-              ctaLabel="Chá»n Premium"
+              features={['240 credits/tháng', 'Premium cloud render', 'Dự án không giới hạn', 'Không watermark', 'Custom branding']}
+              ctaLabel="Chọn Premium"
               onCta={() => handlePlanSelect('premium')}
             />
           </div>
           <div className="text-center mt-8">
-            <Link to={ROUTES.PRICING}>
-              <Button variant="outline" size="sm">Xem chi tiáº¿t báº£ng giÃ¡ <ArrowRight className="w-3.5 h-3.5 ml-1" /></Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Xem chi tiết bảng giá <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
           </div>
         </div>
       </section>
@@ -302,7 +308,7 @@ const Landing = () => {
       <section id="faq" className="py-20 bg-gradient-section">
         <div className="container px-4">
           <SectionHeader
-            badge="CÃ¢u há»i thÆ°á»ng gáº·p"
+            badge="Câu hỏi thường gặp"
             title="FAQ"
           />
           <div className="max-w-2xl mx-auto">
@@ -327,15 +333,15 @@ const Landing = () => {
         <div className="container px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground mb-4">
-              Báº¯t Ä‘áº§u táº¡o video bÃ¡n hÃ ng ngay
+              Bắt đầu tạo video bán hàng ngay
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Chá»‰ cáº§n áº£nh sáº£n pháº©m â€” Viprosell lo pháº§n cÃ²n láº¡i. Miá»…n phÃ­ báº¯t Ä‘áº§u, khÃ´ng cáº§n tháº» tÃ­n dá»¥ng.
+              Chỉ cần ảnh sản phẩm — Viprosell lo phần còn lại. Miễn phí bắt đầu, không cần thẻ tín dụng.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to={ROUTES.SIGNUP}>
-                <Button size="lg" className="font-display glow-primary">
-                  <Sparkles className="w-4 h-4 mr-2" /> Táº¡o video Ä‘áº§u tiÃªn miá»…n phÃ­
+                <Button size="lg" className="font-display glow-primary text-white hover:text-white">
+                  <Sparkles className="w-4 h-4 mr-2" /> Tạo video đầu tiên miễn phí
                 </Button>
               </Link>
               <a href="#demo">
