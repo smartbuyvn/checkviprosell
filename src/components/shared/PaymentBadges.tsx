@@ -1,6 +1,7 @@
 ﻿/**
- * Viprosell â€” Payment Method Badges
- * Shows supported payment method icons (Visa, Mastercard, PayPal).
+ * Viprosell — Payment Method Badges
+ * Hiển thị phương thức thanh toán ĐANG dùng được: chuyển khoản VietQR qua SePay.
+ * Không quảng cáo thẻ quốc tế/PayPal — v1 không nhận các hình thức đó.
  */
 
 import { cn } from '@/lib/utils';
@@ -17,13 +18,10 @@ export function PaymentBadges({ className, size = 'sm' }: PaymentBadgesProps) {
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <div className={badgeBase}>
-        <span className="text-[10px] font-bold tracking-wider text-info">VISA</span>
+        <span className="text-[10px] font-bold tracking-wider text-info">VIETQR</span>
       </div>
       <div className={badgeBase}>
-        <span className="text-[10px] font-bold tracking-wider text-warning">MC</span>
-      </div>
-      <div className={badgeBase}>
-        <span className="text-[10px] font-bold tracking-wider text-info">PayPal</span>
+        <span className="text-[10px] font-bold tracking-wider text-foreground">CHUYỂN KHOẢN</span>
       </div>
     </div>
   );

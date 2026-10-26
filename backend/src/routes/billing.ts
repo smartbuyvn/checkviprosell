@@ -135,24 +135,8 @@ export async function billingRoutes(fastify: FastifyInstance) {
     }
   });
 
-// =================== LEMON SQUEEZY CHECKOUT (INTERNATIONAL) ===================
-  fastify.post('/checkout/lemon', async (request, reply) => {
-    const lemonKey = process.env.LEMONSQUEEZY_API_KEY;
-    const lemonStoreId = process.env.LEMONSQUEEZY_STORE_ID;
-    
-    if (!lemonKey || !lemonStoreId) {
-      return reply.code(503).send({ 
-        error: 'Cổng thanh toán quốc tế chưa được cấu hình. Vui lòng dùng chuyển khoản VietQR (SePay).',
-        code: 'LEMON_NOT_CONFIGURED'
-      });
-    }
-
-    // TODO: Implement Lemon Squeezy checkout when keys are configured
-    return reply.code(501).send({ 
-      error: 'Cổng thanh toán quốc tế đang phát triển. Vui lòng dùng chuyển khoản VietQR.',
-      code: 'LEMON_NOT_IMPLEMENTED'
-    });
-  });
+  // Cổng quốc tế (Lemon Squeezy) đã bỏ: v1 chỉ thu qua VietQR/SePay.
+  // Lý do: phí 5% + 0,5 USD ≈ 18% trên đơn 99k, và khách Việt ít có thẻ quốc tế.
 
   fastify.get('/summary', async (request, reply) => {
     try {
