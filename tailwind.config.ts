@@ -2,7 +2,32 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  safelist: [
+    // Custom CSS classes defined in @layer utilities (index.css)
+    // These use raw CSS (not @apply) so JIT can't scan them from JSX
+    "bg-gradient-hero",
+    "bg-gradient-section",
+    "bg-gradient-section-alt",
+    "text-gradient-primary",
+    "text-gradient-warm",
+    "glow-primary",
+    "glow-neon",
+    "bg-glass",
+    "bg-glass-strong",
+    "bg-surface",
+    "bg-surface-elevated",
+    "border-glow",
+    "btn-viprosell",
+    "shadow-card",
+    "shadow-card-hover",
+    "animate-float",
+    "animate-pulse-glow",
+    "animate-fade-up",
+  ],
   prefix: "",
   theme: {
     container: {

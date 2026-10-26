@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Supabase Local Postgres
   # Provides the actual database for Edge functions and React interactions
@@ -18,7 +16,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis for Queue Data (Currently unused by mock backend, but required for schema)
+  # Redis — Required for BullMQ (ai-jobs + render-jobs queues)
+  # Start with: docker compose -f docker-compose.dev.yml up redis -d
   redis:
     image: redis:7-alpine
     ports:
@@ -32,9 +31,9 @@ services:
       timeout: 3s
       retries: 5
 
-  # NOTE: Physical FaceFusion & Render Workers have been explicitly removed 
-  # from the local compose file as they do not physically exist in the current Node codebase.
-  # Do not attempt to mount `viprosell/render:latest` until the Fastify mock boundaries are gutted.
+  # NOTE: Physical render worker (render.worker.ts / FFmpeg) runs as a Node process outside Docker.
+  # Start with: cd backend && npm run worker:render
+  # Requires: FFmpeg installed in PATH on the host machine.
 
 volumes:
   db_data:
