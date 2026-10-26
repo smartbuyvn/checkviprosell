@@ -1,0 +1,181 @@
+{
+  "schema_version": "1.0",
+  "meta": {
+    "title": "Kem Dưỡng Collagen X3 - Quick Ads 15s",
+    "package_type": "quick_ads",
+    "aspect_ratio": "9:16",
+    "total_frames": 450,
+    "fps": 30,
+    "brand_name": "Collagen X3",
+    "brand_color": "#FF4C61",
+    "voiceover_mode": "placeholder",
+    "bg_music_id": null,
+    "generated_at": "2026-06-04T00:00:00.000Z",
+    "generated_by_model": "sample"
+  },
+  "scenes": [
+    {
+      "id": "scene_hook",
+      "start_frame": 0,
+      "duration_frames": 60,
+      "layout": "image_full",
+      "animation": "zoom_in",
+      "asset": {
+        "src": "https://via.placeholder.com/1080x1920/FFE8E8/FF4C61?text=Product+Hero",
+        "fit": "cover",
+        "focal_x": 0.5,
+        "focal_y": 0.4
+      },
+      "overlays": [
+        {
+          "text": "Da bạn đang lão hoá sớm?",
+          "style": "headline",
+          "position_y": 0.12,
+          "align": "center",
+          "entrance": "fade_in",
+          "delay_frames": 8
+        }
+      ],
+      "voiceover_text": "Da bạn đang lão hoá sớm? Hãy xem cách hàng nghìn phụ nữ đã giải quyết vấn đề này.",
+      "bg_color": "#1A0A0A"
+    },
+    {
+      "id": "scene_usp_1",
+      "start_frame": 60,
+      "duration_frames": 90,
+      "layout": "image_top_text_bottom",
+      "animation": "pan_right",
+      "asset": {
+        "src": "https://via.placeholder.com/1080x1920/FFE8E8/FF4C61?text=Before+After",
+        "fit": "cover",
+        "focal_x": 0.5,
+        "focal_y": 0.3
+      },
+      "overlays": [
+        {
+          "text": "Sáng da rõ rệt sau 7 ngày",
+          "style": "headline",
+          "position_y": 0.72,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 10
+        },
+        {
+          "text": "Collagen tự nhiên, không hoá chất độc hại",
+          "style": "body",
+          "position_y": 0.82,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 18
+        }
+      ],
+      "voiceover_text": "Collagen X3 giúp da sáng rõ rệt sau 7 ngày, chiết xuất hoàn toàn tự nhiên.",
+      "bg_color": "#1A0A0A"
+    },
+    {
+      "id": "scene_usp_2",
+      "start_frame": 150,
+      "duration_frames": 75,
+      "layout": "image_full",
+      "animation": "pan_left",
+      "asset": {
+        "src": "https://via.placeholder.com/1080x1920/FFF0F0/FF4C61?text=Texture+Detail",
+        "fit": "cover",
+        "focal_x": 0.6,
+        "focal_y": 0.5
+      },
+      "overlays": [
+        {
+          "text": "Thiên nhiên 100%",
+          "style": "badge",
+          "position_y": 0.08,
+          "align": "center",
+          "entrance": "fade_in",
+          "delay_frames": 5
+        },
+        {
+          "text": "Thẩm thấu sâu, không nhờn rít",
+          "style": "headline",
+          "position_y": 0.78,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 12
+        }
+      ],
+      "voiceover_text": "Công thức thẩm thấu sâu, không nhờn rít, phù hợp mọi loại da."
+    },
+    {
+      "id": "scene_social_proof",
+      "start_frame": 225,
+      "duration_frames": 75,
+      "layout": "image_top_text_bottom",
+      "animation": "zoom_out",
+      "asset": {
+        "src": "https://via.placeholder.com/1080x1920/FFF0F0/FF4C61?text=Reviews",
+        "fit": "cover",
+        "focal_x": 0.5,
+        "focal_y": 0.35
+      },
+      "overlays": [
+        {
+          "text": "12.000+ khách hàng tin dùng",
+          "style": "headline",
+          "position_y": 0.70,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 8
+        },
+        {
+          "text": "Đánh giá 4.9/5 sao",
+          "style": "body",
+          "position_y": 0.80,
+          "align": "center",
+          "entrance": "fade_in",
+          "delay_frames": 16
+        }
+      ],
+      "voiceover_text": "Hơn mười hai nghìn khách hàng đã tin dùng, đánh giá 4.9 trên 5 sao."
+    },
+    {
+      "id": "scene_cta",
+      "start_frame": 300,
+      "duration_frames": 150,
+      "layout": "cta_card",
+      "animation": "fade_in",
+      "asset": {
+        "src": "https://via.placeholder.com/1080x1920/FF4C61/FFFFFF?text=Product+CTA",
+        "fit": "cover",
+        "focal_x": 0.5,
+        "focal_y": 0.4
+      },
+      "overlays": [
+        {
+          "text": "Giảm 30% hôm nay",
+          "style": "badge",
+          "position_y": 0.60,
+          "align": "center",
+          "entrance": "fade_in",
+          "delay_frames": 5
+        },
+        {
+          "text": "Chỉ còn 299.000đ",
+          "style": "headline",
+          "position_y": 0.70,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 12
+        },
+        {
+          "text": "Mua ngay — Free ship",
+          "style": "cta",
+          "position_y": 0.82,
+          "align": "center",
+          "entrance": "slide_up",
+          "delay_frames": 20
+        }
+      ],
+      "voiceover_text": "Giảm ngay 30%, chỉ còn 299 nghìn đồng. Mua ngay hôm nay, miễn phí vận chuyển toàn quốc.",
+      "bg_color": "#FF4C61"
+    }
+  ]
+}
