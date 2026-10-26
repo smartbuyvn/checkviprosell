@@ -84,8 +84,8 @@ export const PublicFooter = forwardRef<HTMLElement>((_, ref) => {
               <Link to={ROUTES.PRIVACY} className="hover:text-foreground transition-colors w-fit">
                 Chính sách bảo mật
               </Link>
-              <a href="mailto:support@viprosell.com" className="hover:text-foreground transition-colors w-fit">
-                Liên hệ: support@viprosell.com
+              <a href="mailto:support@ninhle.com" className="hover:text-foreground transition-colors w-fit">
+                Liên hệ: support@ninhle.com
               </a>
             </div>
           </div>

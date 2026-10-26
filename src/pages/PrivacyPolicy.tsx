@@ -103,7 +103,7 @@ export default function PrivacyPolicy() {
             <ul className="list-disc pl-5 space-y-2">
               <li><strong className="text-foreground">Quyền truy cập:</strong> Bạn có thể xem toàn bộ dữ liệu cá nhân qua trang Tài khoản.</li>
               <li><strong className="text-foreground">Quyền xóa:</strong> Bạn có thể xóa dự án, tài sản, và tài khoản bất kỳ lúc nào qua trang Cài đặt Tài khoản. Dữ liệu sẽ được xóa vĩnh viễn trong vòng 30 ngày.</li>
-              <li><strong className="text-foreground">Quyền phản đối:</strong> Bạn có thể từ chối nhận email thông báo (trừ thông báo giao dịch bắt buộc) bằng cách liên hệ <a href="mailto:support@viprosell.com" className="text-primary hover:underline transition-colors font-semibold">support@viprosell.com</a>.</li>
+              <li><strong className="text-foreground">Quyền phản đối:</strong> Bạn có thể từ chối nhận email thông báo (trừ thông báo giao dịch bắt buộc) bằng cách liên hệ <a href="mailto:support@ninhle.com" className="text-primary hover:underline transition-colors font-semibold">support@ninhle.com</a>.</li>
             </ul>
           </section>
 
@@ -127,7 +127,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">9. Liên hệ</h2>
             <p>
-              Mọi câu hỏi về Chính sách Bảo mật, vui lòng liên hệ: <a href="mailto:support@viprosell.com" className="text-primary hover:underline transition-colors font-semibold">support@viprosell.com</a>
+              Mọi câu hỏi về Chính sách Bảo mật, vui lòng liên hệ: <a href="mailto:support@ninhle.com" className="text-primary hover:underline transition-colors font-semibold">support@ninhle.com</a>
             </p>
           </section>
         </div>

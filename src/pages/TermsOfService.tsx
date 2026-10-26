@@ -72,7 +72,7 @@ export default function TermsOfService() {
               <li>Credits đã sử dụng (đã render video thành công) <strong className="text-foreground">không được hoàn lại</strong> dưới bất kỳ hình thức nào.</li>
               <li>Credits chưa sử dụng trong gói Premium/Business có thể được xem xét hoàn tiền trong vòng 7 ngày kể từ ngày mua, trừ đi phí giao dịch của cổng thanh toán.</li>
               <li>Giao dịch qua SePay đã hoàn tất chuyển khoản nhưng hệ thống cộng credits thành công <strong className="text-foreground">không được hoàn lại</strong>.</li>
-              <li>Yêu cầu hoàn tiền gửi về: <a href="mailto:support@viprosell.com" className="text-primary hover:underline transition-colors font-semibold">support@viprosell.com</a></li>
+              <li>Yêu cầu hoàn tiền gửi về: <a href="mailto:support@ninhle.com" className="text-primary hover:underline transition-colors font-semibold">support@ninhle.com</a></li>
             </ul>
           </section>
 
@@ -115,7 +115,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">10. Liên hệ</h2>
             <p>
-              Mọi thắc mắc liên quan đến Điều khoản Sử dụng, vui lòng liên hệ: <a href="mailto:support@viprosell.com" className="text-primary hover:underline transition-colors font-semibold">support@viprosell.com</a>
+              Mọi thắc mắc liên quan đến Điều khoản Sử dụng, vui lòng liên hệ: <a href="mailto:support@ninhle.com" className="text-primary hover:underline transition-colors font-semibold">support@ninhle.com</a>
             </p>
           </section>
         </div>
