@@ -1,4 +1,4 @@
-﻿<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
 
 # Viprosell â€“ Product \& Technical Spec CHá»T CUá»I CÃ™NG v1.2
 
