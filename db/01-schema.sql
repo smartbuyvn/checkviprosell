@@ -1,3 +1,21 @@
+-- =============================================================================
+-- CANH BAO -- FILE NAY LA BAN LUU TRU, KHONG PHAI NGUON SU THAT.
+--
+-- Nguon su that cua schema la supabase/migrations/ (chot 26/10/2026, xem db/README.md).
+--
+-- Ngay 26/10/2026 doi chieu truc tiep voi production qua OpenAPI spec cua Supabase
+-- va phat hien cac enum trong file nay SAI (viet lien khong gach duoi):
+--     project_status  conceptready  -> concept_ready
+--                     scriptready   -> script_ready
+--                     renderqueued  -> render_queued
+--     render_mode     draftlocaltts -> draft_local_tts
+--                     premiumcloud  -> premium_cloud
+--     package_type    production co ca 6 gia tri, file nay chi ghi 3
+--
+-- Chinh cho sai nay da dan toi mot ket luan nham: code ghi 'script_ready' bi
+-- tuong la sai enum, trong khi code moi la dung. Da sua lai ben duoi.
+-- =============================================================================
+
 -- ============================================================
 -- VIPROSELL — DATABASE SCHEMA
 -- Phase: 01 — Foundation Design
@@ -6,16 +24,19 @@
 
 -- Enums
 CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
-CREATE TYPE public.package_type AS ENUM ('quick_ads', 'review_video', 'conversion_video');
+-- Production co CA HAI cach viet (di san tu hai dot migration khac nhau).
+CREATE TYPE public.package_type AS ENUM ('quick_ads', 'review_video', 'conversion_video', 'quickads', 'reviewvideo', 'conversionvideo');
 CREATE TYPE public.product_category AS ENUM ('beauty', 'fashion', 'home', 'other');
 CREATE TYPE public.project_status AS ENUM ('draft', 'analyzing', 'concept_ready', 'script_ready', 'render_queued', 'rendering', 'completed', 'failed');
-CREATE TYPE public.render_status AS ENUM ('queued', 'processing', 'completed', 'failed', 'cancelled');
+CREATE TYPE public.render_status AS ENUM ('pending', 'queued', 'processing', 'completed', 'failed', 'cancelled');
 CREATE TYPE public.render_mode AS ENUM ('draft_local', 'draft_local_tts', 'premium_cloud');
 CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
 CREATE TYPE public.affiliate_event_status AS ENUM ('pending', 'approved', 'paid', 'rejected');
 CREATE TYPE public.tts_mode AS ENUM ('local', 'cloud');
 CREATE TYPE public.order_type AS ENUM ('plan_subscription', 'credit_pack');
 CREATE TYPE public.overlay_style AS ENUM ('headline', 'price', 'badge', 'cta');
+-- CHUA doi chieu duoc voi production: khong cot nao dang expose dung type nay.
+-- supabase/migrations ghi la pain_first/review_trust/offer_conversion.
 CREATE TYPE public.angle_type AS ENUM ('pain_first', 'review_trust', 'offer_conversion');
 CREATE TYPE public.price_band AS ENUM ('low', 'mid', 'high');
 
@@ -84,6 +105,12 @@ CREATE TABLE public.projects (
   manual_notes TEXT,
   status project_status NOT NULL DEFAULT 'draft',
   language TEXT NOT NULL DEFAULT 'vi',
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID REFERENCES auth.users(id),
+  delete_reason TEXT,
+  purge_after TIMESTAMPTZ,
+  cancel_requested_at TIMESTAMPTZ,
+  storage_deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -186,10 +213,11 @@ CREATE TABLE public.caption_exports (
 
 CREATE TABLE public.renders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
   render_mode render_mode NOT NULL DEFAULT 'draft_local',
   aspect_ratio TEXT NOT NULL DEFAULT '9:16',
-  status render_status NOT NULL DEFAULT 'queued',
+  status render_status NOT NULL DEFAULT 'pending',
+  progress NUMERIC(5,2) DEFAULT 0,
   provider TEXT,
   composition_url TEXT,
   output_url TEXT,
@@ -198,6 +226,7 @@ CREATE TABLE public.renders (
   error_message TEXT,
   last_fail_reason TEXT,
   duration_ms INTEGER,
+  deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -218,6 +247,13 @@ CREATE TABLE public.face_replace_jobs (
 -- PAYMENTS & BILLING
 -- ============================================================
 
+CREATE TABLE public.idempotency_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  idempotency_key TEXT NOT NULL UNIQUE,
+  action TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -231,6 +267,8 @@ CREATE TABLE public.payments (
   currency TEXT NOT NULL DEFAULT 'USD',
   status payment_status NOT NULL DEFAULT 'pending',
   idempotency_key TEXT NOT NULL UNIQUE,
+  receipt_url TEXT,
+  invoice_url TEXT,
   meta JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -359,3 +397,4 @@ ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scenes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.face_replace_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.idempotency_keys ENABLE ROW LEVEL SECURITY;
