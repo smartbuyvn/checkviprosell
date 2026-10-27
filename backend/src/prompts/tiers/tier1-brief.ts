@@ -18,7 +18,16 @@ Rules:
 - Prefer concrete benefits over vague adjectives.
 - Keep target audience practical and narrow.
 - Infer category only when confidence is high.
-- Include safety notes if claims may be unverifiable.`;
+- Include safety notes if claims may be unverifiable.
+
+Product photos (attached to the user message when available):
+- Look at the photos before writing anything. They are the most reliable source about the product.
+- Ground visual claims in what is actually visible: colour, finish, packaging, texture, size cues, how it is held or used, what is included in the box.
+- Record concrete observations in visual_inputs.notes, one short Vietnamese sentence each. Describe what is there, not what would look good.
+- Set visual_inputs.has_real_product_images=true only when at least one photo shows the product itself, not a logo, a price card, a screenshot of someone else's listing, or a stock background.
+- Where the text and the photos disagree, trust the photos, note the conflict in missing_info and set needs_human_review=true.
+- Flag unusable photos in visual_inputs.notes: blurry, too dark, heavy watermark, visible competitor branding, or a different product.
+- When no photo is attached, leave visual_inputs.notes empty and say nothing about appearance. Do not guess colour or material from the product name.`;
 
 export const TIER1_USER_TEMPLATE = `INPUT PRODUCT DATA:
 - title: {{title}}

@@ -1,6 +1,53 @@
 import { createClient } from '@supabase/supabase-js';
 import { PipelineService, type Tier2Strategy } from './pipeline.service';
-import { llmChat } from './llm.provider';
+import { llmChat, type LlmImage } from './llm.provider';
+import { safeDownload } from '../lib/fetch-guard';
+
+/** So anh toi da gui cho model. Gemini tinh phi theo tung anh nen day la van de chi phi. */
+const VISION_MAX_IMAGES = parseInt(process.env.AI_VISION_MAX_IMAGES || '4', 10);
+/** Tran dung luong moi anh; anh qua nang vua ton token vua de timeout. */
+const VISION_MAX_BYTES = parseInt(process.env.AI_VISION_MAX_BYTES || '1500000', 10);
+
+const MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
+/**
+ * Tai anh san pham ve dang base64 cho tang dao dien nhin.
+ * Hong mot anh thi bo qua anh do: thieu mot anh van viet duoc kich ban,
+ * con chan ca luong chi vi mot URL loi thi te hon nhieu.
+ */
+async function loadProductImages(assets: any[], traceId: string): Promise<LlmImage[]> {
+  if (!assets?.length) return [];
+  const picked = assets
+    .filter((a) => a?.file_url)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .slice(0, VISION_MAX_IMAGES);
+
+  const out: LlmImage[] = [];
+  for (const asset of picked) {
+    const ext = String(asset.file_name || '').split('.').pop()?.toLowerCase() || '';
+    const mimeType = MIME_BY_EXT[ext];
+    if (!mimeType) {
+      console.warn(`[AI] Bo qua ${asset.file_name}: duoi "${ext}" khong phai anh ho tro [${traceId}]`);
+      continue;
+    }
+    try {
+      // safeDownload chan SSRF va gioi han dung luong.
+      const buf = await safeDownload(asset.file_url, { maxBytes: VISION_MAX_BYTES });
+      out.push({ mimeType, base64: buf.toString('base64') });
+    } catch (err: any) {
+      console.warn(`[AI] Khong tai duoc anh ${asset.file_name} [${traceId}]: ${err.message}`);
+    }
+  }
+  if (out.length === 0 && picked.length > 0) {
+    console.warn(`[AI] Khong tai duoc anh nao trong ${picked.length} anh — model se viet mu [${traceId}]`);
+  }
+  return out;
+}
 
 const CATEGORY_MAP: Record<string, string> = {
   beauty: 'beauty',
@@ -66,10 +113,15 @@ export const AIService = {
     const { data: project } = await supabaseClient.from('projects').select('*').eq('id', projectId).eq('user_id', userId).single();
     if (!project) throw new Error('PROJECT_NOT_FOUND');
 
-    const { data: assets } = await supabaseClient.from('project_assets').select('file_name, asset_type').eq('project_id', projectId);
+    const { data: assets } = await supabaseClient.from('project_assets').select('file_name, asset_type, file_url, sort_order').eq('project_id', projectId);
     const imageNotes = assets?.length
       ? assets.map((a: any) => `${a.asset_type}: ${a.file_name}`).join(', ')
       : '';
+
+    // Spec V2 muc 4.2: tang dao dien phai NHIN duoc san pham. Truoc day chi truyen ten file
+    // nen model doan noi dung anh tu ten, kich ban khong bam sat san pham that.
+    // Gioi han so anh de kiem soat token: Gemini tinh phi theo tung anh.
+    const visionImages = await loadProductImages(assets as any[], traceId);
 
     await supabaseClient.from('projects').update({ status: 'analyzing' }).eq('id', projectId);
 
@@ -87,7 +139,8 @@ export const AIService = {
         image_count: assets?.length || 0,
         image_notes: imageNotes,
       },
-      traceId
+      traceId,
+      visionImages
     );
 
     const { error: upsertError } = await supabaseClient.from('product_intelligence').upsert({

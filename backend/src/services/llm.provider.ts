@@ -16,10 +16,24 @@ import { createClient } from '@supabase/supabase-js';
 
 export type LlmTier = 'brief' | 'strategy' | 'scene_graph' | 'render_plan';
 
+/** Mot anh gui kem cho model nhin duoc (vision). */
+export interface LlmImage {
+  /** Vi du 'image/jpeg', 'image/png', 'image/webp'. */
+  mimeType: string;
+  /** Noi dung anh da ma hoa base64, KHONG kem tien to data: */
+  base64: string;
+}
+
 export interface LlmChatOptions {
   tier: LlmTier;
   system: string;
   user: string;
+  /**
+   * Anh san pham gui kem. Spec V2 muc 4.2 yeu cau "Director call #1 (co nhin anh)":
+   * khong co anh thi model doan noi dung tu ten file, nen kich ban khong bam sat san pham
+   * va viec gan anh cho tung canh chi la phong doan.
+   */
+  images?: LlmImage[];
   temperature?: number;
   timeoutMs?: number;
   traceId?: string;
@@ -142,7 +156,8 @@ async function callGemini(
   user: string,
   temperature: number,
   timeoutMs: number,
-  traceId: string
+  traceId: string,
+  images: LlmImage[] = []
 ): Promise<{ text: string; latencyMs: number }> {
   const cfg = getConfig();
   if (!cfg.geminiApiKey) throw new Error('GEMINI_FALLBACK_DISABLED: GEMINI_API_KEY not set');
@@ -156,7 +171,16 @@ async function callGemini(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: user }] }],
+        // Chu truoc, anh sau: model doc yeu cau roi moi soi anh theo yeu cau do.
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: user },
+            ...images.map((img) => ({
+              inline_data: { mime_type: img.mimeType, data: img.base64 },
+            })),
+          ],
+        }],
         generationConfig: { temperature, topP: 0.9 },
       }),
       signal: controller.signal,
@@ -204,7 +228,10 @@ export async function llmChat(options: LlmChatOptions): Promise<LlmChatResult> {
       const elapsed = Date.now() - startedAt;
       throw new Error(`LOCAL_LLM_ONLY: ${err.message} (external AI disabled by policy)`);
     }
-    const gemini = await callGemini(options.system, options.user, temperature, cfg.geminiTimeoutMs, traceId);
+// Ollama o nhanh tren chay model van ban nen anh bi bo qua; chi Gemini nhin duoc.
+const gemini = await callGemini(
+  options.system, options.user, temperature, cfg.geminiTimeoutMs, traceId, options.images ?? []
+);
     return { text: gemini.text, provider: 'gemini', latencyMs: gemini.latencyMs, fallbackUsed: true };
   }
 }

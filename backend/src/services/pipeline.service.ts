@@ -29,7 +29,7 @@ import {
   TIER4_SYSTEM_PROMPT,
   type Tier4RenderPlan,
 } from '../prompts/tiers/tier4-render-plan';
-import { llmChat, extractJSON } from './llm.provider';
+import { llmChat, extractJSON , type LlmImage } from './llm.provider';
 import { validateBriefTier, validateStrategyTier, validateSceneGraphTier, validateRenderPlanTier, clampSceneCount } from '../prompts/validators';
 
 const REPAIR_PROMPT = `Kết quả trước không đúng JSON schema hoặc JSON không hợp lệ. Hãy sửa và trả về CHỈ valid JSON đúng schema yêu cầu. Không markdown, không giải thích.`;
@@ -41,9 +41,11 @@ async function runTier<T>(
   system: string,
   user: string,
   schema: LooseSchema,
-  traceId: string
+  traceId: string,
+  /** Anh san pham cho tang nhin duoc; tang khac de trong. */
+  images: LlmImage[] = []
 ): Promise<{ data: T; provider: 'ollama' | 'gemini'; fallbackUsed: boolean }> {
-  const first = await llmChat({ tier, system, user, traceId });
+  const first = await llmChat({ tier, system, user, traceId, images });
   let parsed = extractJSON(first.text);
   let check = parsed ? schema.safeParse(parsed) : { success: false, error: null };
 
@@ -81,9 +83,14 @@ function normalizeSceneTiming(sceneGraph: Tier3SceneGraph): Tier3SceneGraph {
 }
 
 export const PipelineService = {
-  async generateBrief(input: Record<string, unknown>, traceId = 'pipeline'): Promise<Tier1Brief> {
+  async generateBrief(
+    input: Record<string, unknown>,
+    traceId = 'pipeline',
+    /** Anh san pham: spec V2 4.2 yeu cau tang dao dien phai NHIN duoc san pham. */
+    images: LlmImage[] = []
+  ): Promise<Tier1Brief> {
     const user = buildTier1Prompt(input);
-    const { data } = await runTier<Tier1Brief>('brief', TIER1_SYSTEM_PROMPT, user, Tier1BriefSchema, traceId);
+    const { data } = await runTier<Tier1Brief>('brief', TIER1_SYSTEM_PROMPT, user, Tier1BriefSchema, traceId, images);
     const v = validateBriefTier(data);
     if (!v.valid) throw new Error(`TIER_BRIEF_INVALID: ${v.errors.join('; ')}`);
     return data;
