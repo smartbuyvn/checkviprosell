@@ -7,6 +7,19 @@ const supabase = createClient(
 
 export const BillingService = {
   /** Fetch active plans from DB, ordered by sort_order */
+  /**
+   * Lay mot goi dang hoat dong theo ma. Dung luc tao don de gia va so credit
+   * chi co MOT nguon duy nhat la bang plans, thay vi viet cung o moi noi.
+   */
+  async getPlanByCode(code: string) {
+    return supabase
+      .from('plans')
+      .select('code, name, price, credits')
+      .eq('code', code)
+      .eq('is_active', true)
+      .maybeSingle();
+  },
+
   async getPlans() {
     const { data, error } = await supabase
       .from('plans')

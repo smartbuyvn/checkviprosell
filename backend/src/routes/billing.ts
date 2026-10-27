@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { BillingService } from '../services/billing.service';
 import { getVerifiedUserId } from '../lib/auth';
+import { generateOrderRef } from '../lib/security';
 
 export async function billingRoutes(fastify: FastifyInstance) {
   /**
@@ -31,27 +32,35 @@ export async function billingRoutes(fastify: FastifyInstance) {
     }
 
     // Fallback: hardcoded plans (if DB is empty or errored)
+    // Chi liet ke tinh nang CO THAT. Da go (19/10 -> 27/10/2026):
+    //   'Draft + Voice render'  - chua co TTS nao trong backend
+    //   'Premium cloud render'  - bi khoa boi PREMIUM_RENDER_ENABLED
+    //   'Khong watermark'       - khong he co watermark nen go cung khong co gi de go
+    //   'API access'            - chua mo API cho khach
+    //   'Du an khong gioi han'  - khong co gioi han o goi nao de ma bo
+    //   'credits/thang'         - khong co gia han tu dong, day la goi nap mot lan
+    // Danh sach nay chi dung khi doc bang plans that bai; sua o DB phai dong bo.
     const fallbackPlans = [
       {
         id: 'free',
         name: 'Free',
         price: 'Miễn phí',
         credits: 5,
-        features: ['5 credits miễn phí', 'Draft local render', '3 loại video', 'Overlay cơ bản'],
+        features: ['5 credits dùng thử', 'Render bản nháp', '3 loại video', 'Overlay chữ'],
       },
       {
         id: 'pro',
         name: 'Pro',
         price: '130,000₫',
         credits: 50,
-        features: ['50 credits/tháng', 'Draft + Voice render', 'Ưu tiên AI xử lý', 'Tất cả loại video', 'Xuất caption'],
+        features: ['50 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ qua email'],
       },
       {
         id: 'business',
         name: 'Business',
         price: '250,000₫',
         credits: 110,
-        features: ['110 credits/tháng', 'Premium cloud render', 'Hỗ trợ ưu tiên', 'Tất cả tính năng', 'API access'],
+        features: ['110 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'],
         popular: true,
       },
       {
@@ -59,7 +68,7 @@ export async function billingRoutes(fastify: FastifyInstance) {
         name: 'Premium',
         price: '520,000₫',
         credits: 240,
-        features: ['240 credits/tháng', 'Premium cloud render', 'Dự án không giới hạn', 'Không watermark', 'Custom branding'],
+        features: ['240 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'],
       },
     ];
     return reply.send(fallbackPlans);
@@ -74,32 +83,36 @@ export async function billingRoutes(fastify: FastifyInstance) {
 
       fastify.log.info(`[Billing] Creating SePay session for user: ${userId}, plan: ${plan_code}`);
 
-      // Map plans to VND
-      const PLANS: Record<string, { credits: number, priceVnd: number }> = {
-         starter: { credits: 250, priceVnd: 50000 },
-         pro:     { credits: 50, priceVnd: 130000 },
-         business: { credits: 110, priceVnd: 250000 },
-         premium: { credits: 240, priceVnd: 520000 },
-      };
+      // Doc gia tu bang plans thay vi viet cung o day.
+      // Ban hardcode cu con chua goi "starter" 250 credit / 50.000d (200d moi credit)
+      // khong ton tai o bat ky noi nao khac va ban duoi gia von.
+      const { data: planRow, error: planErr } = await BillingService.getPlanByCode(plan_code);
 
-      const plan = PLANS[plan_code] || PLANS['pro']; // default fallback
-      const amount = plan.priceVnd;
+      if (planErr || !planRow) {
+        fastify.log.warn(`[Billing] Goi khong hop le hoac khong hoat dong: ${plan_code}`);
+        return reply.code(400).send({ error: 'INVALID_PLAN', plan_code });
+      }
+      const amount = Math.round(Number(planRow.price));
+      if (!(amount > 0)) {
+        return reply.code(400).send({ error: 'PLAN_NOT_PURCHASABLE', plan_code });
+      }
 
       // Bank Configuration (Can be overridden by .env)
       const bankAcc = process.env.SEPAY_BANK_ACC || '123456789';
       const bankName = process.env.SEPAY_BANK_NAME || 'MBBank';
       const accName = process.env.SEPAY_ACCOUNT_NAME || 'NGUYEN VAN A';
       
-      // Unique transfer content. Example: VIPRO A1B2C3
-      const shortId = userId.split('-')[0].toUpperCase();
-      const content = `VIPRO ${shortId}`;
+      // Ma gan voi TUNG DON HANG, khong phai tung nguoi.
+      // Truoc day noi dung la `VIPRO <8 hex dau cua user id>`, nen moi don cua cung mot
+      // khach deu giong het nhau va webhook khong biet ho mua goi nao -> phai doan theo
+      // so tien, dan toi cong sai credit.
+      const refCode = generateOrderRef();
+      const content = `VIPRO ${refCode}`;
       
       // VietQR standard URL structure via SePay
       const qr_url = `https://qr.sepay.vn/img?acc=${bankAcc}&bank=${bankName}&amount=${amount}&des=${encodeURIComponent(content)}`;
 
-      // Return immediately without creating pending DB record to avoid DB spam on modal open
-      // The webhook will handle creating the 'paid' record when money arrives.
-      // But if we want to track 'pending' to show in UI history:
+      // Ghi y dinh mua ngay luc nay: webhook se tra lai ban ghi nay theo ref_code
       try {
          const { createClient } = require('@supabase/supabase-js');
          const supabase = createClient(
@@ -107,15 +120,16 @@ export async function billingRoutes(fastify: FastifyInstance) {
             process.env.SUPABASE_SERVICE_ROLE_KEY || ''
          );
          await supabase.from('payments').insert({
+              idempotency_key: `checkout_${refCode}`,
             user_id: userId,
             provider: 'sepay',
-            provider_txn_id: `pending_${Date.now()}_${shortId}`,
+            provider_txn_id: `pending_${refCode}`,
             order_type: 'plan_subscription',
             plan_code: plan_code,
             amount: amount,
             currency: 'VND',
             status: 'pending',
-            meta: { expected_content: content }
+            meta: { expected_content: content, ref_code: refCode }
          });
       } catch (e: any) {
          fastify.log.warn(`[Billing] Could not insert pending payment: ${e.message}`);
@@ -123,6 +137,7 @@ export async function billingRoutes(fastify: FastifyInstance) {
 
       return reply.send({
          qr_url,
+         ref_code: refCode,
          content,
          amount,
          account_no: bankAcc,

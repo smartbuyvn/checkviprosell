@@ -22,3 +22,33 @@ export function parseTransferCode(content: string): string | null {
   const match = content.match(/VIPRO\s*([0-9A-F]{8})/i);
   return match ? match[1].toLowerCase() : null;
 }
+
+/**
+ * Bang chu cai cho ma don hang. Bo 0/O/1/I/L vi khach doc tu man hinh roi go tay
+ * vao app ngan hang — nham mot ky tu la khong doi soat duoc.
+ */
+const ORDER_REF_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+/**
+ * Sinh ma don hang duy nhat, dang P + 7 ky tu (vi du P7K3M9Q).
+ *
+ * Vi sao bat dau bang 'P': ma NGUOI DUNG la 8 ky tu hex (0-9a-f), ma 'P' khong phai
+ * ky tu hex, nen hai loai ma khong bao gio lan nhau du cung nam sau chu VIPRO.
+ *
+ * Ma nay gan voi tung DON HANG chu khong phai tung nguoi: truoc day moi don cua cung
+ * mot khach deu co noi dung chuyen khoan giong het nhau, nen webhook khong biet khach
+ * dinh mua goi nao va phai doan theo so tien.
+ */
+export function generateOrderRef(): string {
+  let out = 'P';
+  for (let i = 0; i < 7; i++) {
+    out += ORDER_REF_ALPHABET[Math.floor(Math.random() * ORDER_REF_ALPHABET.length)];
+  }
+  return out;
+}
+
+/** Doc ma don hang tu noi dung chuyen khoan. Tra ve null neu khong co. */
+export function parseOrderRef(content: string): string | null {
+  const m = String(content ?? '').match(/VIPRO\s*(P[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{7})/i);
+  return m ? m[1].toUpperCase() : null;
+}
