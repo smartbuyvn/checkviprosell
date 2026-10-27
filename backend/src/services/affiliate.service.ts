@@ -5,8 +5,159 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 );
 
+/** Ngưỡng rút tối thiểu. Trùng với policy.minWithdrawalVnd trả cho giao diện. */
+const MIN_WITHDRAWAL_VND = 125000;
+
+/** Số ngày giữ hoa hồng trước khi cho rút, chống hoàn tiền sau khi đã trả. */
+const HOLD_DAYS = 7;
+
 export const AffiliateService = {
+  /**
+   * Chuyển hoa hồng đã qua thời gian giữ từ 'pending' sang 'approved'.
+   *
+   * Trước đây `holdUntil` được ghi vào meta lúc tạo hoa hồng nhưng KHÔNG có gì đọc nó:
+   * không cron, không job. Hệ quả là mọi hoa hồng nằm mãi ở 'pending', số dư rút được
+   * luôn bằng 0, và đối tác không bao giờ lấy được tiền.
+   *
+   * Làm ngay lúc đọc bảng điều khiển thay vì dựng cron: không cần thêm hạ tầng, chạy lại
+   * nhiều lần cũng cho cùng kết quả, và đối tác thấy số dư đúng ngay khi mở trang.
+   */
+  async approveMaturedCommissions(referrerId: string): Promise<number> {
+    const { data: pendings } = await supabase
+      .from('affiliate_events')
+      .select('id, created_at, meta')
+      .eq('referrer_id', referrerId)
+      .eq('status', 'pending');
+
+    if (!pendings || pendings.length === 0) return 0;
+
+    const now = Date.now();
+    const matured = pendings
+      .filter((e: any) => {
+        // Ưu tiên holdUntil trong meta; sự kiện cũ không có thì suy từ created_at.
+        const raw = e?.meta?.holdUntil;
+        const until = raw
+          ? Date.parse(raw)
+          : Date.parse(e.created_at) + HOLD_DAYS * 24 * 60 * 60 * 1000;
+        return Number.isFinite(until) && now >= until;
+      })
+      .map((e: any) => e.id);
+
+    if (matured.length === 0) return 0;
+
+    const { error } = await supabase
+      .from('affiliate_events')
+      .update({ status: 'approved' })
+      .in('id', matured)
+      .eq('status', 'pending'); // chặn ghi đè nếu một tiến trình khác vừa đổi
+
+    if (error) {
+      console.warn(`[Affiliate] Không duyệt được hoa hồng của ${referrerId}: ${error.message}`);
+      return 0;
+    }
+    return matured.length;
+  },
+
+  /**
+   * Tạo yêu cầu rút tiền.
+   * Kiểm tra ở backend chứ không tin số giao diện gửi lên: số dư, ngưỡng tối thiểu,
+   * và không cho mở yêu cầu thứ hai khi còn một yêu cầu đang xử lý.
+   */
+  async requestWithdrawal(
+    userId: string,
+    input: { amountVnd: number; bank: string; accountNo: string; accountName: string }
+  ) {
+    const amount = Math.floor(Number(input.amountVnd));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Số tiền không hợp lệ');
+    }
+    for (const [field, label] of [
+      ['bank', 'tên ngân hàng'],
+      ['accountNo', 'số tài khoản'],
+      ['accountName', 'tên chủ tài khoản'],
+    ] as const) {
+      if (!String(input[field] ?? '').trim()) throw new Error(`Thiếu ${label}`);
+    }
+
+    // Duyệt phần đã đến hạn trước, để đối tác rút được ngay thay vì phải đợi lần mở sau.
+    await this.approveMaturedCommissions(userId);
+
+    const { data: approvedEvents } = await supabase
+      .from('affiliate_events')
+      .select('commission_amount')
+      .eq('referrer_id', userId)
+      .eq('status', 'approved');
+
+    const available = (approvedEvents || []).reduce(
+      (acc: number, e: any) => acc + Number(e.commission_amount || 0),
+      0
+    );
+
+    if (available < MIN_WITHDRAWAL_VND) {
+      throw new Error(
+        `Số dư rút được là ${available.toLocaleString('vi-VN')}đ, ` +
+        `chưa đạt mức tối thiểu ${MIN_WITHDRAWAL_VND.toLocaleString('vi-VN')}đ`
+      );
+    }
+    if (amount > available) {
+      throw new Error(`Chỉ rút được tối đa ${available.toLocaleString('vi-VN')}đ`);
+    }
+    if (amount < MIN_WITHDRAWAL_VND) {
+      throw new Error(`Mỗi lần rút tối thiểu ${MIN_WITHDRAWAL_VND.toLocaleString('vi-VN')}đ`);
+    }
+
+    const { data, error } = await supabase
+      .from('affiliate_withdrawals')
+      .insert({
+        referrer_id: userId,
+        amount_vnd: amount,
+        status: 'requested',
+        payout_account: {
+          bank: String(input.bank).trim(),
+          account_no: String(input.accountNo).trim(),
+          account_name: String(input.accountName).trim(),
+        },
+        meta: { availableAtRequestVnd: available },
+      })
+      .select('id, amount_vnd, status, requested_at')
+      .single();
+
+    if (error) {
+      // Chỉ số uniq_affiliate_withdrawal_open chặn yêu cầu thứ hai khi còn một cái đang mở.
+      if (error.code === '23505') {
+        throw new Error('Bạn đang có một yêu cầu rút chờ xử lý. Đợi xử lý xong rồi gửi tiếp.');
+      }
+      if (error.code === 'PGRST205') {
+        throw new Error('Chức năng rút tiền chưa sẵn sàng: thiếu bảng affiliate_withdrawals.');
+      }
+      throw new Error(`Không tạo được yêu cầu rút: ${error.message}`);
+    }
+
+    return { success: true, withdrawal: data };
+  },
+
+  /** Lịch sử yêu cầu rút của chính đối tác. */
+  async getWithdrawals(userId: string) {
+    const { data, error } = await supabase
+      .from('affiliate_withdrawals')
+      .select('id, amount_vnd, status, note, requested_at, processed_at')
+      .eq('referrer_id', userId)
+      .order('requested_at', { ascending: false })
+      .limit(50);
+
+    // Chưa chạy migration thì trả danh sách rỗng thay vì làm vỡ cả trang.
+    if (error) {
+      if (error.code === 'PGRST205') return [];
+      throw new Error(error.message);
+    }
+    return data || [];
+  },
+
   async getDashboard(userId: string) {
+    // Duyet phan da qua thoi gian giu TRUOC khi doc, neu khong so du rut duoc se
+    // hien 0 cho den lan mo trang ke tiep.
+    await this.approveMaturedCommissions(userId);
+
     const { data: profile } = await supabase.from('profiles').select('affiliate_code').eq('id', userId).single();
     
     // Select all events generated by this referrer
@@ -53,10 +204,21 @@ export const AffiliateService = {
       };
     });
 
+    const withdrawals = await this.getWithdrawals(userId);
+
+    // Tien dang nam trong cac yeu cau chua tra xong khong duoc tinh la rut duoc nua,
+    // neu khong doi tac se rut duoc hai lan cung mot so tien.
+    const lockedVnd = withdrawals
+      .filter((w: any) => w.status === 'requested' || w.status === 'approved')
+      .reduce((acc: number, w: any) => acc + Number(w.amount_vnd || 0), 0);
+
+    const availableVnd = Math.max(0, approvedVnd - lockedVnd);
+
     const appBaseUrl = process.env.VITE_APP_BASE_URL || 'http://localhost:8080';
     
     const totalAccVnd = pendingVnd + approvedVnd + paidVnd;
     const tier = totalAccVnd >= 2500000 ? 'gold' : 'silver';
+    // Ty le ap tren gia niem yet cua goi (VND).
     const commissionRate = tier === 'gold' ? 0.15 : 0.10;
 
     return {
@@ -77,8 +239,13 @@ export const AffiliateService = {
         pendingCommissionVnd: pendingVnd,
         approvedCommissionVnd: approvedVnd,
         paidCommissionVnd: paidVnd,
-        rejectedCommissionVnd: rejectedVnd
+        rejectedCommissionVnd: rejectedVnd,
+        /** So tien doi tac co the yeu cau rut ngay bay gio. */
+        availableVnd,
+        /** Dang nam trong yeu cau chua tra xong. */
+        lockedVnd
       },
+      withdrawals,
       events: mappedEvents
     };
   },

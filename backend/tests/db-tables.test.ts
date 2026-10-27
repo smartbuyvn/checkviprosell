@@ -15,6 +15,8 @@ const REAL_TABLES = new Set([
   'system_settings', 'usage_logs', 'user_roles', 'visual_packs',
   // Tạo bởi supabase/migrations/20260821000001_create_idempotency_keys.sql
   'idempotency_keys',
+  // Tạo bởi supabase/migrations/20261027000001_affiliate_withdrawals.sql
+  'affiliate_withdrawals',
 ]);
 
 function sourceFiles(dir: string): string[] {

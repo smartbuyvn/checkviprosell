@@ -36,6 +36,19 @@ interface AffiliateSummary {
   approvedCommissionVnd: number;
   paidCommissionVnd: number;
   rejectedCommissionVnd: number;
+  /** Rút được ngay bây giờ = đã duyệt trừ phần đang nằm trong yêu cầu chưa xử lý. */
+  availableVnd: number;
+  /** Đang nằm trong yêu cầu rút chưa trả xong. */
+  lockedVnd: number;
+}
+
+interface AffiliateWithdrawal {
+  id: string;
+  amount_vnd: number;
+  status: 'requested' | 'approved' | 'paid' | 'rejected';
+  note: string | null;
+  requested_at: string;
+  processed_at: string | null;
 }
 
 interface AffiliatePolicy {
@@ -54,6 +67,7 @@ interface AffiliateData {
   policy: AffiliatePolicy;
   summary: AffiliateSummary;
   events: AffiliateEvent[];
+  withdrawals: AffiliateWithdrawal[];
 }
 
 /* ──────────────── Skeleton Loading State ──────────────── */
@@ -208,6 +222,101 @@ function StatCard({ label, value, subtext, icon, accentClass = '' }: StatCardPro
    AffiliateDashboard — Main Component
    ════════════════════════════════════════════════════════ */
 
+/**
+ * Form yêu cầu rút. Mọi kiểm tra thật nằm ở backend — phần kiểm ở đây chỉ để
+ * báo sớm cho người dùng, không được tin là đủ.
+ */
+function WithdrawalForm({
+  availableVnd,
+  minVnd,
+  hasOpenRequest,
+  onDone,
+}: {
+  availableVnd: number;
+  minVnd: number;
+  hasOpenRequest: boolean;
+  onDone: () => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [bank, setBank] = useState('');
+  const [accountNo, setAccountNo] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [sending, setSending] = useState(false);
+
+  if (hasOpenRequest) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Bạn đang có một yêu cầu rút chờ xử lý. Chúng tôi sẽ báo khi chuyển khoản xong.
+      </p>
+    );
+  }
+
+  if (availableVnd < minVnd) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Số dư rút được hiện là <span className="text-foreground font-medium">{fmtVnd(availableVnd)}</span>,
+        chưa đạt mức tối thiểu {fmtVnd(minVnd)}.
+      </p>
+    );
+  }
+
+  async function submit() {
+    const value = Number(String(amount).replace(/[^0-9]/g, ''));
+    if (!value) return toast.error('Nhập số tiền muốn rút');
+    if (value > availableVnd) return toast.error(`Chỉ rút được tối đa ${fmtVnd(availableVnd)}`);
+    if (value < minVnd) return toast.error(`Mỗi lần rút tối thiểu ${fmtVnd(minVnd)}`);
+    if (!bank.trim() || !accountNo.trim() || !accountName.trim()) {
+      return toast.error('Điền đủ ngân hàng, số tài khoản và tên chủ tài khoản');
+    }
+
+    setSending(true);
+    try {
+      await affiliateService.requestWithdrawal({
+        amountVnd: value,
+        bank: bank.trim(),
+        accountNo: accountNo.trim(),
+        accountName: accountName.trim(),
+      });
+      toast.success('Đã gửi yêu cầu rút. Chúng tôi sẽ xử lý trong vài ngày làm việc.');
+      setAmount('');
+      onDone();
+    } catch (err: any) {
+      toast.error(err?.message || 'Không gửi được yêu cầu');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Input
+          placeholder={`Số tiền (tối đa ${fmtVnd(availableVnd)})`}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          inputMode="numeric"
+        />
+        <Input placeholder="Ngân hàng (VD: MBBank)" value={bank} onChange={(e) => setBank(e.target.value)} />
+        <Input
+          placeholder="Số tài khoản"
+          value={accountNo}
+          onChange={(e) => setAccountNo(e.target.value)}
+          inputMode="numeric"
+        />
+        <Input
+          placeholder="Tên chủ tài khoản"
+          value={accountName}
+          onChange={(e) => setAccountName(e.target.value)}
+        />
+      </div>
+      <Button onClick={submit} disabled={sending} size="sm">
+        {sending ? 'Đang gửi...' : 'Gửi yêu cầu rút'}
+      </Button>
+    </div>
+  );
+}
+
+
 export default function AffiliateDashboard() {
   const [data, setData] = useState<AffiliateData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,7 +369,7 @@ export default function AffiliateDashboard() {
           <span className="text-gradient-primary">(Affiliate)</span>
         </h1>
         <p className="text-muted-foreground">
-          Giới thiệu người dùng mới tham gia Viprosell và nhận hoa hồng từ giao dịch của họ.
+          Giới thiệu người dùng mới tham gia Viprosell và nhận hoa hồng tiền mặt từ giao dịch của họ.
         </p>
       </div>
 
@@ -394,8 +503,12 @@ export default function AffiliateDashboard() {
             />
             <StatCard
               label="Khả dụng"
-              value={fmtVnd(data.summary.approvedCommissionVnd)}
-              subtext="Sẵn sàng rút"
+              value={fmtVnd(data.summary.availableVnd ?? data.summary.approvedCommissionVnd)}
+              subtext={
+                data.summary.lockedVnd > 0
+                  ? `Đang chờ rút ${fmtVnd(data.summary.lockedVnd)}`
+                  : 'Sẵn sàng rút'
+              }
               icon={<Wallet className="w-4 h-4" />}
               accentClass="bg-primary"
             />
@@ -417,6 +530,45 @@ export default function AffiliateDashboard() {
               </div>
             </div>
           )}
+
+          {/* ═══════ Rút hoa hồng ═══════ */}
+          <Card className="rounded-2xl border-border/60 bg-card/60 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-base">Rút hoa hồng</CardTitle>
+              <CardDescription>
+                Tối thiểu {fmtVnd(data.policy.minWithdrawalVnd)} mỗi lần. Hoa hồng được giữ{' '}
+                {data.policy.holdDays} ngày trước khi rút được, để phòng trường hợp khách hoàn tiền.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <WithdrawalForm
+                availableVnd={data.summary.availableVnd ?? 0}
+                minVnd={data.policy.minWithdrawalVnd}
+                hasOpenRequest={(data.withdrawals ?? []).some(
+                  (w) => w.status === 'requested' || w.status === 'approved'
+                )}
+                onDone={load}
+              />
+
+              {(data.withdrawals ?? []).length > 0 && (
+                <div className="pt-2 border-t border-border/60">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Lịch sử rút</p>
+                  <ul className="space-y-1.5">
+                    {(data.withdrawals ?? []).map((w) => (
+                      <li key={w.id} className="flex items-center justify-between text-sm gap-3">
+                        <span className="text-muted-foreground shrink-0">
+                          {new Date(w.requested_at).toLocaleDateString('vi-VN')}
+                        </span>
+                        <span className="font-medium text-foreground">{fmtVnd(w.amount_vnd)}</span>
+                        <StatusBadge status={w.status === 'requested' ? 'pending' : w.status} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
 
           {/* ═══════ Conversion History Table ═══════ */}
           <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl">
@@ -477,7 +629,7 @@ export default function AffiliateDashboard() {
                                 : 'text-primary'
                             }`}
                           >
-                            + {ev.commissionVnd.toLocaleString('vi-VN')}
+                            + {ev.commissionVnd.toLocaleString('vi-VN')}₫
                           </span>
                         </td>
                         <td className="px-4 py-4 text-center">

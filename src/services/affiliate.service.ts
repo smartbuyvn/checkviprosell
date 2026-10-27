@@ -22,6 +22,27 @@ export const AffiliateService = {
       return null;
     }
   },
+  /** Gửi yêu cầu rút hoa hồng. Backend tự kiểm số dư và ngưỡng tối thiểu. */
+  requestWithdrawal: async (input: {
+    amountVnd: number;
+    bank: string;
+    accountNo: string;
+    accountName: string;
+  }) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetchWithTimeout(`${API_ROOT}/affiliate/withdrawals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify(input),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body?.error || 'Không gửi được yêu cầu rút');
+    return body;
+  },
+
   
   setReferredBy: async (affiliateCode: string) => {
     const session = await getSessionSafe(supabase);
