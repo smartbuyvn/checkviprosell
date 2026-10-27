@@ -609,12 +609,15 @@ const NewProject = () => {
                     <div className="grid sm:grid-cols-3 gap-2">
                       <button onClick={() => setRenderMode('draft_local')} className={cn('rounded-lg p-3 text-left transition-all border', renderMode === 'draft_local' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card opacity-80 hover:opacity-100')}>
                          <span className="text-xs font-semibold text-foreground block">Draft Local (Free)</span>
-                         <span className="text-[10px] text-muted-foreground block mt-0.5">Render tại máy, không âm thanh TTS.</span>
+                         <span className="text-[10px] text-muted-foreground block mt-0.5">Video có chữ và nhạc nền, chưa có giọng đọc.</span>
                       </button>
-                      <button onClick={() => setRenderMode('draftlocaltts')} className={cn('rounded-lg p-3 text-left transition-all border', renderMode === 'draftlocaltts' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card opacity-80 hover:opacity-100')}>
-                         <span className="text-xs font-semibold text-foreground block">Draft + TTS Voice</span>
-                         <span className="text-[10px] text-muted-foreground block mt-0.5">Render tại máy, kèm ghép giọng cục bộ.</span>
-                      </button>
+                      {/* Khoá tới khi có TTS thật: backend chưa tích hợp nhà cung cấp giọng đọc nào,
+                          và render.worker.ts không đọc cột render_mode — chọn mục này cho ra video
+                          giống hệt Draft Local, nên để khách chọn là hứa thứ chưa tồn tại. */}
+                      <div className="rounded-lg p-3 border border-dashed border-border/50 bg-background/50 flex flex-col">
+                         <span className="text-xs font-semibold text-muted-foreground block">Draft + Giọng đọc</span>
+                         <span className="text-[10px] text-muted-foreground mt-0.5">Sắp có.</span>
+                      </div>
                       
                       {(!settings.PREMIUMRENDERENABLED || settings.LOCALONLYMODE) ? (
                          <div className="rounded-lg p-3 border border-dashed border-border/50 bg-background/50 flex flex-col justify-center opacity-60">

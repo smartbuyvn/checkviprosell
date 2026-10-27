@@ -597,8 +597,10 @@ const ScriptRender = () => {
                   <Button onClick={() => handleRender('draft_local')} className="gap-2 w-full" size="sm">
                     <Film className="h-3.5 w-3.5" /> Render Draft
                   </Button>
-                  <Button onClick={() => handleRender('draftlocaltts')} variant="secondary" className="gap-2 w-full" size="sm">
-                    <Play className="h-3.5 w-3.5" /> Draft + Voice
+                  {/* Vô hiệu tới khi có TTS thật: backend chưa tích hợp giọng đọc và
+                      render.worker.ts không đọc render_mode, nên bản "Voice" trùng bản Draft. */}
+                  <Button variant="secondary" disabled className="gap-2 w-full" size="sm" title="Sắp có">
+                    <Play className="h-3.5 w-3.5" /> Draft + Giọng đọc
                   </Button>
                   {showPremium && (
                     <Button variant="outline" disabled className="gap-2 w-full" size="sm" title="Coming soon">
