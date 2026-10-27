@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 interface PricingCardProps {
   name: string;
   price: string;
-  period: string;
+  /** Bo trong khi la goi nap mot lan. Co gia tri thi hien "/<period>" sau gia. */
+  period?: string;
   description: string;
   features: string[];
   ctaLabel?: string;
@@ -41,7 +42,7 @@ export function PricingCard({
       </div>
       <div className="mb-5">
         <span className="font-display text-3xl font-bold text-foreground">{price}</span>
-        <span className="text-sm text-muted-foreground ml-1">/{period}</span>
+        {period && <span className="text-sm text-muted-foreground ml-1">/{period}</span>}
       </div>
       <ul className="space-y-2.5 mb-6">
         {features.map((f) => (

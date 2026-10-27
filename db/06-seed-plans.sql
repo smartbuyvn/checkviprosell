@@ -18,25 +18,25 @@ INSERT INTO public.plans (
 VALUES
   -- Free tier: No payment needed
   ('free', 'Free', 5, 0, 'VND',
-    '["5 credits miễn phí", "Draft local render", "3 loại video", "Overlay cơ bản"]',
+    '["5 credits dùng thử", "Render bản nháp", "3 loại video", "Overlay chữ"]',
     true, 1,
     NULL, NULL),
 
   -- Pro tier
   ('pro', 'Pro', 50, 130000, 'VND',
-    '["50 credits/tháng", "Draft + Voice render", "Ưu tiên AI xử lý", "Tất cả loại video", "Xuất caption"]',
+    '["50 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ qua email"]',
     true, 2,
     'test_product_pro_001', 'test_variant_pro_001'),
 
   -- Business tier (popular)
   ('business', 'Business', 110, 250000, 'VND',
-    '["110 credits/tháng", "Premium cloud render", "Hỗ trợ ưu tiên", "Tất cả tính năng", "API access"]',
+    '["110 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ ưu tiên"]',
     true, 3,
     'test_product_biz_001', 'test_variant_biz_001'),
 
   -- Premium tier
   ('premium', 'Premium', 240, 520000, 'VND',
-    '["240 credits/tháng", "Premium cloud render", "Dự án không giới hạn", "Không watermark", "Custom branding"]',
+    '["240 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ ưu tiên"]',
     true, 4,
     'test_product_prm_001', 'test_variant_prm_001');
 

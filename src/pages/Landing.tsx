@@ -3,7 +3,9 @@
  * Full conversion-ready landing with all sections.
  */
 
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { BillingService, type PlanPackage } from '@/services/billing.service';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
@@ -47,7 +49,7 @@ const FAQ_ITEMS = [
   { q: 'Tôi có cần cài gì trên máy không?', a: 'Không. Viprosell chạy hoàn toàn trên web: bạn tải ảnh lên, hệ thống xử lý rồi trả video về. Không cần cài FFmpeg, không cần máy cấu hình cao.' },
   { q: 'Khác gì video AI full generative (Sora, Runway)?', a: 'Viprosell tạo video từ ảnh/video sản phẩm thật — không AI sinh ảnh giả. Kết quả chân thật, phù hợp bán hàng trên TikTok/Reels.' },
   { q: 'Có xuất caption, subtitle không?', a: 'Có. Mỗi video đi kèm caption TikTok, Reels, hashtag, subtitle text, và thumbnail text.' },
-  { q: 'Có chương trình affiliate không?', a: 'Có. Bạn giới thiệu bạn bè, nhận hoa hồng cho mỗi người dùng trả phí.' },
+  { q: 'Có chương trình affiliate không?', a: 'Có. Bạn giới thiệu bạn bè, nhận hoa hồng tiền mặt cho mỗi người dùng trả phí.' },
   { q: 'Render video ở đâu?', a: 'Trên hệ thống render của Viprosell. Bạn chỉ cần chờ rồi tải video về — thường vài phút tuỳ độ dài video.' },
 ];
 
@@ -56,6 +58,38 @@ const Landing = () => {
   const { isAuthenticated } = useAuth();
 
   /** Navigate to billing with plan pre-selected (auth) or signup (guest) */
+  // Bang gia doc tu API de chi co MOT nguon su that. Da tung co bon ban sao lech nhau
+  // (CSDL, billing.ts, Landing.tsx, va mot bang PLANS trong checkout).
+  //
+  // Van giu danh sach du phong vi trang chu truoc gio khong goi API nao va van hien
+  // duoc khi backend chet. Mat tinh chat do de doi lay tinh nhat quan la khong dang.
+  const FALLBACK_PLANS: PlanPackage[] = [
+    { id: 'free', name: 'Free', price: 'Miễn phí', credits: 5,
+      features: ['5 credits dùng thử', 'Render bản nháp', '3 loại video', 'Overlay chữ'], popular: false },
+    { id: 'pro', name: 'Pro', price: '130.000₫', credits: 50,
+      features: ['50 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ qua email'], popular: false },
+    { id: 'business', name: 'Business', price: '250.000₫', credits: 110,
+      features: ['110 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: true },
+    { id: 'premium', name: 'Premium', price: '520.000₫', credits: 240,
+      features: ['240 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: false },
+  ];
+
+  const [plans, setPlans] = useState<PlanPackage[]>(FALLBACK_PLANS);
+
+  useEffect(() => {
+    let alive = true;
+    BillingService.getPlans()
+      .then((res) => {
+        if (alive && res.ok && res.plans?.length) setPlans(res.plans);
+      })
+      .catch(() => {
+        // Im lang giu danh sach du phong: khach khong can biet API hong.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const handlePlanSelect = (planCode: string) => {
     if (isAuthenticated) {
       navigate(ROUTES.BILLING, { state: { selectedPlan: planCode } });
@@ -254,43 +288,18 @@ const Landing = () => {
             subtitle="Chọn gói phù hợp, nâng cấp bất kỳ lúc nào."
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
-            <PricingCard
-              name="Free"
-              price="Miễn phí"
-              period="tháng"
-              description="5 credits"
-              features={['5 credits miễn phí', 'Draft local render', '3 loại video', 'Overlay cơ bản']}
-              ctaLabel="Bắt đầu miễn phí"
-              onCta={() => handlePlanSelect('free')}
-            />
-            <PricingCard
-              name="Pro"
-              price="130.000₫"
-              period="tháng"
-              description="50 credits"
-              features={['50 credits/tháng', 'Draft + Voice render', 'Ưu tiên AI xử lý', 'Tất cả loại video', 'Xuất caption']}
-              featured
-              ctaLabel="Chọn Pro"
-              onCta={() => handlePlanSelect('pro')}
-            />
-            <PricingCard
-              name="Business"
-              price="250.000₫"
-              period="tháng"
-              description="110 credits"
-              features={['110 credits/tháng', 'Premium cloud render', 'Hỗ trợ ưu tiên', 'Tất cả tính năng', 'API access']}
-              ctaLabel="Chọn Business"
-              onCta={() => handlePlanSelect('business')}
-            />
-            <PricingCard
-              name="Premium"
-              price="520.000₫"
-              period="tháng"
-              description="240 credits"
-              features={['240 credits/tháng', 'Premium cloud render', 'Dự án không giới hạn', 'Không watermark', 'Custom branding']}
-              ctaLabel="Chọn Premium"
-              onCta={() => handlePlanSelect('premium')}
-            />
+            {plans.map((plan) => (
+              <PricingCard
+                key={plan.id}
+                name={plan.name}
+                price={plan.price}
+                description={`${plan.credits} credits`}
+                features={plan.features}
+                featured={plan.popular}
+                ctaLabel={plan.price === 'Miễn phí' ? 'Bắt đầu miễn phí' : `Chọn ${plan.name}`}
+                onCta={() => handlePlanSelect(plan.id)}
+              />
+            ))}
           </div>
           <div className="text-center mt-8">
             <Button

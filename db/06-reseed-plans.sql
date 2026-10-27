@@ -12,10 +12,10 @@ DELETE FROM public.plans;
 -- Step 2: Insert new plans matching UI design
 INSERT INTO public.plans (code, name, credits, price, currency, features, is_active, sort_order)
 VALUES 
-  ('free', 'Free', 5, 0, 'VND', '["5 credits miễn phí", "Draft local render", "3 loại video", "Overlay cơ bản"]', true, 1),
+  ('free', 'Free', 5, 0, 'VND', '["5 credits dùng thử", "Render bản nháp", "3 loại video", "Overlay chữ"]', true, 1),
   
-  ('pro', 'Pro', 50, 130000, 'VND', '["50 credits/tháng", "Draft + Voice render", "Ưu tiên AI xử lý", "Tất cả loại video", "Xuất caption"]', true, 2),
+  ('pro', 'Pro', 50, 130000, 'VND', '["50 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ qua email"]', true, 2),
   
-  ('business', 'Business', 110, 250000, 'VND', '["110 credits/tháng", "Premium cloud render", "Hỗ trợ ưu tiên", "Tất cả tính năng", "API access"]', true, 3),
+  ('business', 'Business', 110, 250000, 'VND', '["110 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ ưu tiên"]', true, 3),
   
-  ('premium', 'Premium', 240, 520000, 'VND', '["240 credits/tháng", "Premium cloud render", "Dự án không giới hạn", "Không watermark", "Custom branding"]', true, 4);
+  ('premium', 'Premium', 240, 520000, 'VND', '["240 credits", "Tất cả loại video", "Xuất caption", "Hỗ trợ ưu tiên"]', true, 4);
