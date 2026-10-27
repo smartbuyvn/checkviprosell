@@ -35,7 +35,9 @@ async function main() {
   // Create render row in DB
   const { error: insertErr } = await supabase.from('renders').insert({
     id: renderId,
-    render_mode: 'quickads',
+    // 'quickads' la package_type, khong phai render_mode. Enum render_mode chi co
+    // draft_local | draft_local_tts | premium_cloud nen gia tri cu luon bi tu choi.
+    render_mode: 'draft_local',
     aspect_ratio: aspectRatio,
     status: 'pending',
     raw_input: mockRawInput

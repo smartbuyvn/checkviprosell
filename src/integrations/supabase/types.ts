@@ -821,7 +821,7 @@ export type Database = {
         | "rendering"
         | "completed"
         | "failed"
-      render_mode: "draft_local" | "draftlocaltts" | "premiumcloud"
+      render_mode: "draft_local" | "draft_local_tts" | "premium_cloud"
       render_status:
         | "queued"
         | "processing"
@@ -975,7 +975,7 @@ export const Constants = {
         "completed",
         "failed",
       ],
-      render_mode: ["draft_local", "draftlocaltts", "premiumcloud"],
+      render_mode: ["draft_local", "draft_local_tts", "premium_cloud"],
       render_status: [
         "queued",
         "processing",

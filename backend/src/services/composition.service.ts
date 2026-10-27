@@ -7,10 +7,12 @@
  */
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { toDbRenderMode } from '../lib/render-mode';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:54321';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 export const CompositionService = {
   /**
@@ -26,22 +28,25 @@ export const CompositionService = {
     const renderId = randomUUID();
     const traceId = randomUUID();
 
-    if (renderMode === 'premiumcloud' && process.env.PREMIUM_RENDER_ENABLED !== 'true') {
+    // So sanh sau khi chuan hoa: truoc day chi bat 'premiumcloud', nen ai gui
+    // dung dang DB 'premium_cloud' se lach qua khoa admin nay.
+    const dbRenderMode = toDbRenderMode(renderMode);
+    if (dbRenderMode === 'premium_cloud' && process.env.PREMIUM_RENDER_ENABLED !== 'true') {
       throw new Error('CLOUD_RENDER_DISABLED: Premium cloud render is deactivated by admin.');
     }
 
     const { error: insertErr } = await supabase.from('renders').insert({
       id: renderId,
       project_id: projectId,
-      render_mode: renderMode,
+      render_mode: dbRenderMode,
       aspect_ratio: aspectRatio,
       status: 'pending',
       scene_graph_json: sceneGraph || null,
     });
     if (insertErr) throw new Error(`RENDER_INSERT_FAILED: ${insertErr.message}`);
 
-    console.log(`[Render] Job ${renderId} created (status=pending) for project ${projectId} (mode: ${renderMode}). Waiting for Local Render Worker.`);
-    return { id: renderId, status: 'pending', mode: renderMode, traceId };
+    console.log(`[Render] Job ${renderId} created (status=pending) for project ${projectId} (mode: ${dbRenderMode}). Waiting for Local Render Worker.`);
+    return { id: renderId, status: 'pending', mode: dbRenderMode, traceId };
   },
 
   /** Get current status of a render by reading `renders` table */
