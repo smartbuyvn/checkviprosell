@@ -35,6 +35,11 @@ import { khopCanhVoiTieng, catLoiChoVua, tempoChoVua, TEMPO_TOI_DA } from './lib
 import { chonGiong } from './lib/giong-doc';
 import { runVideoEditJob } from './video-edit.job';
 import { isVideoAsset, buildVideoSceneFilter, pickSegment, probeVideo, MAX_CLIP_BYTES, type VideoMeta } from './lib/video-asset';
+import {
+  nhanJob, ghiCoChan, batDauNhipTim, quyenTuDong,
+  tenWorker, jobTypesHoTro, leaseDangBat,
+  LEASE_GIAY_MAC_DINH, type QuyenJob, type NhipTim,
+} from './lib/lease';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
@@ -204,6 +209,26 @@ const FONT_FILE = IS_WINDOWS ? (process.env.FFMPEG_FONT_FILE || 'C:/Windows/Font
  */
 const CHI_NAP = process.env.WORKER_CHI_NAP === '1';
 
+/**
+ * ── Đường nhận job có khoá: MẶC ĐỊNH TẮT ──
+ *
+ * Bật bằng `HANG_DOI_LEASE=1`. Tắt thì worker chạy y hệt như trước khi có migration
+ * hàng đợi — cùng vòng quét `status='pending'`, cùng `reclaimStuckJobs`.
+ *
+ * Để tắt mặc định là có chủ ý: đây là thay đổi ROUTING của thứ đang chạy tiền thật.
+ * Mã vào repo và được test trước, còn việc đổi hành vi của worker đang sống là một
+ * quyết định riêng, bật bằng một biến môi trường chứ không bằng một lần `git pull`.
+ *
+ * Bật lên thì ba thứ đổi:
+ *   - Nhận job qua `nhan_job_render()` (FOR UPDATE SKIP LOCKED) thay vì `select`.
+ *   - `reclaimStuckJobs` nghỉ — RPC tự nhận lại job hết lease trong cùng một câu.
+ *   - Mọi lệnh ghi kèm `attempt_id`, nên worker mất lease không ghi đè được kết quả.
+ */
+const LEASE_BAT = leaseDangBat();
+const WORKER = tenWorker();
+const JOB_TYPES = jobTypesHoTro();
+const LEASE_GIAY = parseInt(process.env.RENDER_LEASE_GIAY || String(LEASE_GIAY_MAC_DINH), 10);
+
 const ASS_FONT_NAME = FONT_CHU;
 
 // In ra ngay khi khoi dong: hai thu hay sai nhat la encoder va font phu de,
@@ -295,8 +320,44 @@ function getZoompanFilter(motionType: string, zoomStart: number, zoomEnd: number
   }
 }
 
+/**
+ * Ghi trạng thái, chỉ khi còn giữ quyền sở hữu job.
+ *
+ * KHÔNG ném lỗi khi mất lease, dù nghe có vẻ hợp lý hơn. Hai lý do:
+ *
+ * 1. Khối `catch` của `processRenderJob` cũng gọi hàm này để ghi 'failed'. Ném ở đây
+ *    thì một job mất lease sẽ ném trong catch, thành lỗi khác hẳn và che mất lỗi gốc.
+ * 2. Bộ đếm tiến độ gọi hàm này từ trong callback của ffmpeg mà không await. Ném ở đó
+ *    thành unhandled rejection, giết cả tiến trình worker thay vì huỷ một job.
+ *
+ * Việc chặn ghi đã đủ để đảm bảo tính đúng: lệnh ghi đơn giản không áp dụng, nên worker
+ * cũ không thể ghi đè kết quả của attempt mới. Dừng sớm chỉ là tiết kiệm CPU, không phải
+ * điều kiện để đúng.
+ */
 async function setStatus(renderId: string, status: string, extra: Record<string, any> = {}) {
-  await supabase.from('renders').update({ status, updated_at: new Date().toISOString(), ...extra }).eq('id', renderId);
+  const quyen = quyenCua(renderId);
+  try {
+    const con = await ghiCoChan(supabase, quyen, renderId, {
+      status,
+      updated_at: new Date().toISOString(),
+      ...extra,
+    });
+    if (!con && !daMatLease.has(renderId)) {
+      daMatLease.add(renderId);
+      console.warn(
+        `[Worker] MAT LEASE job ${renderId}: khong ghi duoc trang thai '${status}' vi attempt_id ` +
+        `da bi thay. Mot worker khac dang lam job nay — moi lenh ghi tu day se bi bo qua.`,
+      );
+    }
+  } catch (e: any) {
+    // Loi ghi khac han mat lease: chua biet job con cua minh khong. Khong duoc im lang.
+    console.error(`[Worker] Khong ghi duoc trang thai '${status}' cho ${renderId}: ${e.message}`);
+  }
+}
+
+/** Job này đã mất lease chưa — kiểm trước các bước dài để không dựng không. */
+function matLease(renderId: string): boolean {
+  return daMatLease.has(renderId);
 }
 
 /**
@@ -383,7 +444,10 @@ function execFfmpegWithProgress(args: string[], totalDurationSec: number, render
         const now = Date.now();
         if (now - lastProgressTime > 2000) {
           lastProgressTime = now;
-          supabase.from('renders').update({ progress }).eq('id', renderId).then();
+          // Khong await: bo dem nay chay trong callback cua ffmpeg, cho no lam cham
+          // viec doc stderr. `.catch` la bat buoc — khong co thi mot loi mang o day
+          // thanh unhandled rejection va giet ca worker.
+          void ghiCoChan(supabase, quyenCua(renderId), renderId, { progress }).catch(() => {});
         }
       }
     });
@@ -1293,6 +1357,25 @@ async function resolveRealImageUrls(payload: any, renderPlan: Tier4RenderPlan): 
 /** Job dang chay o tien trinh nay. Sweep luc khoi dong va realtime co the cham cung mot job. */
 const inFlight = new Set<string>();
 
+/**
+ * Quyền sở hữu các job đang chạy ở tiến trình này, tra theo `renderId`.
+ *
+ * Để ở map thay vì truyền `quyen` xuống từng hàm là có chủ ý: `setStatus` được gọi từ
+ * chín chỗ, bộ đếm tiến độ gọi từ trong callback của ffmpeg, và khối JSON pipeline gọi
+ * ở giữa luồng. Truyền tham số qua hết các chỗ đó là sửa mười mấy điểm gọi cho một
+ * thứ mà cả ba đều đã có `renderId` trong tay.
+ *
+ * Rỗng nghĩa là đường cũ (chưa bật lease) — khi đó `ghiCoChan` ghi thẳng, không chặn.
+ */
+const quyenDangGiu = new Map<string, QuyenJob>();
+
+/** Job đã mất lease. Dùng để log một lần chứ không mỗi lệnh ghi một dòng. */
+const daMatLease = new Set<string>();
+
+function quyenCua(renderId: string): QuyenJob | null {
+  return quyenDangGiu.get(renderId) ?? null;
+}
+
 async function processRenderJob(payload: any) {
   const renderId = payload.id;
   const startMs = Date.now();
@@ -1302,6 +1385,29 @@ async function processRenderJob(payload: any) {
     return;
   }
   inFlight.add(renderId);
+
+  /**
+   * Nhịp tim giữ lease. Chỉ bật khi dòng render thật sự có `attempt_id` — tức job này
+   * đến từ `nhan_job_render()`. Job đi đường cũ không có attempt nào để gia hạn, và
+   * `quyenDangGiu` để rỗng thì mọi lệnh ghi không bị chặn, đúng như trước.
+   */
+  let nhip: NhipTim | null = null;
+  if (LEASE_BAT && payload.attempt_id) {
+    const quyen = quyenTuDong(payload, WORKER);
+    quyenDangGiu.set(renderId, quyen);
+    nhip = batDauNhipTim(supabase, quyen, {
+      leaseGiay: LEASE_GIAY,
+      onMatLease: (lyDo) => {
+        daMatLease.add(renderId);
+        console.warn(
+          `[Worker] MAT LEASE job ${renderId}: ${lyDo}. Dung ghi ket qua. Ca dung hien tai ` +
+          `van chay tiep cho het de khong bo file nua voi, nhung moi lenh ghi se bi bo qua.`,
+        );
+      },
+      onLoi: (e: any, soLan) =>
+        console.warn(`[Worker] Gia han lease job ${renderId} loi lan ${soLan}: ${e?.message ?? e}`),
+    });
+  }
 
   console.log(`[Worker] Started job ${renderId}`);
   await setStatus(renderId, 'processing', { progress: 5 });
@@ -1472,12 +1578,12 @@ async function processRenderJob(payload: any) {
     }
     console.log(`[Worker] Ke hoach co ${sceneCount} canh.`);
 
-    await supabase.from('renders').update({
+    await ghiCoChan(supabase, quyenCua(renderId), renderId, {
       product_brief_json: productBrief,
       strategy_json: strategy,
       scene_graph_json: sceneGraph,
       render_plan_json: renderPlan,
-    }).eq('id', renderId);
+    });
 
     await setStatus(renderId, 'processing', { progress: 15 });
 
@@ -1790,6 +1896,21 @@ async function processRenderJob(payload: any) {
     }
     } // het nhanh luong anh
 
+    /**
+     * Mất lease thì DỪNG TRƯỚC KHI TẢI LÊN. Đây là điều kiện để đúng, không phải tối ưu.
+     *
+     * Tên file tải lên tính từ `renderId`, và lệnh tải dùng `upsert: true`. Attempt mới
+     * sinh ra đúng cái tên đó. Nên một worker đã mất lease mà vẫn tải lên sẽ GHI ĐÈ video
+     * của attempt đang chạy — khách nhận video của lần dựng cũ, có thể là lần đã hỏng.
+     *
+     * Chặn ghi bằng `attempt_id` bảo vệ được bảng `renders`, nhưng Storage không có khoá
+     * nào tương đương. Chỗ này là ranh giới duy nhất chặn được.
+     */
+    if (matLease(renderId)) {
+      console.warn(`[Worker] Bo qua tai len job ${renderId}: da mat lease, tai len se ghi de ket qua cua attempt moi.`);
+      return;
+    }
+
     console.log(`[Worker] Uploading ${outputFileName} to Supabase Storage...`);
     const fileBuffer = fs.readFileSync(outputPath);
     const { error: uploadErr } = await supabase.storage
@@ -1891,6 +2012,11 @@ async function processRenderJob(payload: any) {
     });
     await sendCallback(renderId, 'failed', { error_code: 'RENDER_FAILED', error_message: err.message.slice(0, 500) });
   } finally {
+    // Dừng nhịp tim TRƯỚC khi nhả quyền: ngược lại thì một lượt gia hạn đang bay có thể
+    // kéo dài lease của một job đã xong, giữ dòng ở 'processing' thêm một nhịp vô ích.
+    nhip?.dung();
+    quyenDangGiu.delete(renderId);
+    daMatLease.delete(renderId);
     inFlight.delete(renderId);
     if (fs.existsSync(jobTmpDir)) fs.rmSync(jobTmpDir, { recursive: true, force: true });
   }
@@ -1913,6 +2039,15 @@ const SWEEP_LIMIT = parseInt(process.env.RENDER_SWEEP_LIMIT || '20', 10);
  * không có gì. Quá thời hạn thì trả về 'pending' để được xử lý lại.
  */
 async function reclaimStuckJobs() {
+  // Bật lease thì hàm này PHẢI nghỉ. Nó thả job 'processing' quá hạn về 'pending' mà
+  // KHÔNG kiểm worker cũ còn sống không — đúng cái lỗi mà lease sinh ra để sửa. Để nó
+  // chạy song song với lease là vừa khoá job lại vừa tự mở khoá.
+  //
+  // Việc nhận lại job hết lease đã nằm trong `nhan_job_render()`, cùng một câu với việc
+  // chiếm quyền, nên không có khe thời gian nào job mang trạng thái 'pending' trong khi
+  // thực ra vẫn có worker đang làm.
+  if (LEASE_BAT) return;
+
   const phutToiDa = parseInt(process.env.RENDER_STUCK_MINUTES || '20', 10);
   const moc = new Date(Date.now() - phutToiDa * 60_000).toISOString();
 
@@ -1932,7 +2067,79 @@ async function reclaimStuckJobs() {
   }
 }
 
+/**
+ * Nhận và xử lý job lần lượt qua `nhan_job_render()` cho tới khi hết việc.
+ *
+ * Khác vòng quét cũ ở chỗ căn bản: vòng cũ ĐỌC một danh sách rồi xử lý, nên hai worker
+ * đọc được cùng một danh sách. Hàm này CHIẾM một job rồi mới xử lý, và việc chiếm là
+ * một câu `FOR UPDATE SKIP LOCKED` — hai worker không bao giờ chiếm được cùng một dòng.
+ *
+ * Tuần tự chứ không song song, giữ nguyên lý do cũ: máy cá nhân chỉ có bấy nhiêu CPU,
+ * chạy cùng lúc làm chậm tất cả và dễ hết RAM giữa chừng.
+ */
+/** Vòng nhận job đang chạy — chặn hai vòng chồng nhau. */
+let dangNhanJob = false;
+/** Có thông báo đến trong lúc vòng đang chạy: chạy thêm một lượt nữa khi xong. */
+let canNhanLai = false;
+
+/**
+ * Bọc ngoài `nhanVaXuLyHetViec` để **chỉ có một vòng chạy mỗi lúc**.
+ *
+ * Realtime nổ trong lúc vòng đang dựng video sẽ gọi hàm này lần nữa. Không chặn thì hai
+ * vòng chạy song song và hai ca ffmpeg cùng lúc trên một máy bốn nhân — chậm cả hai và
+ * dễ hết RAM. SKIP LOCKED vẫn đảm bảo không nhận trùng job, nên đây là chuyện tài nguyên
+ * chứ không phải tính đúng.
+ *
+ * `canNhanLai` xử lý khe hẹp còn lại: thông báo đến đúng lúc vòng đang thoát ra. Không có
+ * cờ này thì job đó phải chờ tới lượt quét định kỳ.
+ */
+async function vongNhanJob(imLang = false) {
+  if (dangNhanJob) {
+    canNhanLai = true;
+    return;
+  }
+  dangNhanJob = true;
+  try {
+    do {
+      canNhanLai = false;
+      await nhanVaXuLyHetViec(imLang);
+    } while (canNhanLai);
+  } finally {
+    dangNhanJob = false;
+  }
+}
+
+async function nhanVaXuLyHetViec(imLang = false) {
+  let soJob = 0;
+
+  for (;;) {
+    let dong: Record<string, any> | null;
+    try {
+      dong = await nhanJob(supabase, { worker: WORKER, jobTypes: JOB_TYPES, leaseGiay: LEASE_GIAY });
+    } catch (e: any) {
+      // Khong goi duoc CSDL khac han hang doi rong. Phai noi ro, neu khong worker doi
+      // viec ma khong ai biet.
+      console.error(`[Worker] Khong nhan duoc job: ${e.message}`);
+      return;
+    }
+
+    if (!dong) {
+      if (!imLang && soJob === 0) console.log(`[Worker] Khong co job ton dong (${JOB_TYPES.join(', ')}).`);
+      if (soJob > 0) console.log(`[Worker] Het viec — da xu ly ${soJob} job.`);
+      return;
+    }
+
+    soJob += 1;
+    console.log(`[Worker] Chiem duoc job ${dong.id} (attempt ${dong.attempt_id}, lan thu ${dong.attempt_count}).`);
+    await processRenderJob(dong).catch((e) =>
+      console.error(`[Worker] Job ${dong!.id} that bai:`, e),
+    );
+  }
+}
+
 async function sweepPendingJobs(imLang = false) {
+  if (LEASE_BAT) return vongNhanJob(imLang);
+
   await reclaimStuckJobs();
 
   const { data, error } = await supabase
@@ -1962,7 +2169,17 @@ async function sweepPendingJobs(imLang = false) {
   }
 }
 
-if (!CHI_NAP) console.log(`[Worker] Starting Viprosell Render Worker (Supabase Realtime, unified path)...`);
+if (!CHI_NAP) {
+  console.log(`[Worker] Starting Viprosell Render Worker (Supabase Realtime, unified path)...`);
+  // In ra ngay lúc khởi động: chạy đường nào là thứ phải biết TRƯỚC khi đọc log, không
+  // phải suy ra từ hành vi. Hai đường nhận job trông giống nhau trong log cho tới lúc
+  // có hai worker, và lúc đó thì đã muộn.
+  console.log(
+    LEASE_BAT
+      ? `[Worker] Hang doi CO KHOA: worker="${WORKER}", job_types=[${JOB_TYPES.join(', ')}], lease=${LEASE_GIAY}s`
+      : `[Worker] Hang doi duong CU (khong khoa). Bat bang HANG_DOI_LEASE=1.`,
+  );
+}
 
 const channel = supabase.channel('public:renders')
   .on(
@@ -1970,6 +2187,14 @@ const channel = supabase.channel('public:renders')
     { event: 'INSERT', schema: 'public', table: 'renders', filter: 'status=eq.pending' },
     (payload) => {
       console.log(`[Realtime] Received new pending job:`, payload.new.id);
+      if (LEASE_BAT) {
+        // KHONG xu ly payload truc tiep. Payload la mot BAN THONG BAO, khong phai quyen
+        // so huu: xu ly thang la bo qua buoc chiem quyen, tuc quay lai dung cai loi hai
+        // worker cung lam mot job. O day realtime chi lam mot viec — danh thuc vong nhan
+        // job som hon lich quet dinh ky.
+        void vongNhanJob(true).catch(console.error);
+        return;
+      }
       processRenderJob(payload.new).catch(console.error);
     }
   )
