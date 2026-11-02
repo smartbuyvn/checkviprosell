@@ -66,7 +66,7 @@ async function main() {
     if (!data) continue;
     const pct = data.progress ? `${Math.round(data.progress)}%` : '';
     process.stdout.write(`\r[${attempts * 5}s] Status: ${data.status} ${pct}    `);
-    if (['completed', 'failed', 'retryable_failed'].includes(data.status)) {
+    if (['completed', 'failed', 'cancelled'].includes(data.status)) {
       done = true;
       console.log(`\n\n✅ FINAL STATUS: ${data.status}`);
       if (data.output_url) console.log(`   Video URL: ${data.output_url}`);
