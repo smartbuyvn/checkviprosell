@@ -46,6 +46,27 @@ export interface RenderJobResult {
   progress?: number;
 }
 
+/**
+ * Tiêu đề cho dự án `quick_ads` tạo tự động.
+ *
+ * Lấy tên sản phẩm, lùi về tên miền của đường dẫn, cuối cùng là một nhãn chung — để
+ * danh sách dự án của khách không có dòng nào trơ tên. Cắt ở 200 ký tự vì tiêu đề
+ * dài hơn thế làm vỡ bố cục danh sách, và tên sản phẩm trên Shopee thường rất dài.
+ *
+ * Tách ra thành hàm thuần để test được mà không cần Supabase.
+ */
+export function tieuDeQuickAds(input: { product_title?: string; product_url?: string }): string {
+  let nhan = (input.product_title ?? '').trim();
+  if (!nhan && input.product_url) {
+    try {
+      nhan = new URL(input.product_url).hostname;
+    } catch {
+      // Duong dan hong thi bo qua, lui ve nhan chung o duoi.
+    }
+  }
+  return `Quick Ads — ${nhan || 'khong ten'}`.slice(0, 200);
+}
+
 // ─── Main Orchestrator ────────────────────────────────────────────────────────
 
 export const QuickAdsRenderService = {
@@ -88,8 +109,62 @@ export const QuickAdsRenderService = {
   /**
    * Step 1: Create Job in Supabase (status=pending, picked up by Realtime worker).
    */
-  async startRender(input: QuickAdsRenderInput, jobId?: string): Promise<RenderJobResult> {
+  /**
+   * Tạo một dự án `quick_ads` thuộc về `userId`, để render có chủ sở hữu.
+   *
+   * Hai trang công cụ (`ShopeeToVideo`, `ImagesToVideo`) chỉ gửi `product_url` kèm token
+   * — chúng không tạo dự án nào. Nên backend phải tạo, nếu không dòng render không có
+   * đường nào truy ra chủ.
+   *
+   * Theo đúng khuôn dữ liệu đang có: `package_type = 'quick_ads'` (24 dự án hiện dùng
+   * giá trị này), `status = 'draft'`, `language = 'vi'`. `category = 'other'` vì luồng
+   * này không biết ngành hàng — nó chỉ có một đường dẫn hoặc vài tấm ảnh.
+   */
+  async taoDuAnQuickAds(
+    userId: string,
+    input: { product_title?: string; product_url?: string },
+  ): Promise<{ projectId?: string; error?: string }> {
+    const title = tieuDeQuickAds(input);
+
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        user_id: userId,
+        title,
+        package_type: 'quick_ads',
+        category: 'other',
+        source_url: input.product_url ?? null,
+        language: 'vi',
+        status: 'draft',
+      })
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      console.error('[QuickAds] Khong tao duoc du an:', error?.message);
+      return { error: error?.message ?? 'Khong tao duoc du an' };
+    }
+    return { projectId: (data as any).id as string };
+  },
+
+  /**
+   * `projectId` là BẮT BUỘC từ 02/11/2026.
+   *
+   * Trước đó hàm này chèn vào `renders` mà không đặt `project_id`, nên render quick-ads
+   * **không có chủ**. Hậu quả: bảng `renders` không có cột `user_id` nên quyền sở hữu đi
+   * qua `project_id → projects.user_id`, và thiếu `project_id` thì không endpoint nào
+   * kiểm được quyền — bất kỳ ai đã đăng nhập đều đọc được `output_url` của job người khác.
+   *
+   * Để nó là tham số bắt buộc chứ không phải tuỳ chọn là có chủ ý: tuỳ chọn thì lần sau
+   * ai gọi mà quên là lại sinh ra một dòng không chủ, và TypeScript không nhắc.
+   */
+  async startRender(input: QuickAdsRenderInput, projectId: string, jobId?: string): Promise<RenderJobResult> {
     const id = jobId ?? crypto.randomUUID();
+
+    if (!projectId) {
+      // Khong im lang tao dong khong chu: tha ve loi de nguoi goi phai sua.
+      return { job_id: id, status: 'failed', error: 'projectId la bat buoc — render phai co chu so huu.' };
+    }
 
     // Anh/video la BAT BUOC. Link san pham mot minh khong du.
     //
@@ -115,6 +190,7 @@ export const QuickAdsRenderService = {
 
     const { error: insertErr } = await supabase.from('renders').insert({
       id,
+      project_id: projectId,
       render_mode: 'draft_local',
       aspect_ratio: input.aspect_ratio || '9:16',
       status: 'pending',

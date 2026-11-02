@@ -90,9 +90,9 @@ test('render khong ton tai thi 404', async () => {
 });
 
 test('render KHONG co project_id thi 403 — khong ai chung minh duoc quyen', async () => {
-  // Day la nhanh de bo sot nhat. `QuickAdsRenderService.startRender` chen vao renders
-  // ma KHONG dat project_id, nen dong khong chu co the phat sinh that. Cho qua la cho
-  // TAT CA moi nguoi, nen phai dong.
+  // Day la nhanh de bo sot nhat. Nguon sinh ra dong khong chu da bit ngay 02/11
+  // (startRender gio bat buoc projectId), nhung nhanh nay van phai dong: no bao ve
+  // cac dong cu va moi duong ghi moi co the quen. Cho qua la cho TAT CA moi nguoi.
   for (const pid of [null, undefined, '']) {
     const reply = replyGia();
     const ra = await requireRenderOwner(reqGia(), reply, ID, {

@@ -65,9 +65,11 @@ const DANG_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
  * ── Render không có chủ thì TỪ CHỐI ──
  *
  * `project_id` rỗng nghĩa là không ai chứng minh được quyền sở hữu. Cho qua là cho
- * tất cả mọi người, nên đây phải đóng. Đo ngày 02/11/2026: 0/36 dòng thiếu
- * `project_id`, nên nhánh này hiện không chặn ai — nhưng `QuickAdsRenderService.startRender`
- * chèn vào `renders` mà KHÔNG đặt `project_id`, nên nó có thể phát sinh.
+ * tất cả mọi người, nên đây phải đóng. Đo ngày 02/11/2026: 0/36 dòng thiếu `project_id`.
+ *
+ * Nguồn sinh ra dòng không chủ đã được bịt cùng ngày: `QuickAdsRenderService.startRender`
+ * giờ nhận `projectId` là tham số BẮT BUỘC. Nhánh này vẫn giữ, vì nó bảo vệ các dòng cũ
+ * và mọi đường ghi mới có thể quên.
  *
  * Trả về cả dòng render để nơi gọi khỏi đọc lại lần nữa.
  */

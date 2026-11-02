@@ -10,7 +10,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { getVerifiedUserId, isAdmin } from '../lib/auth';
+import { getVerifiedUserId, isAdmin, requireProjectOwner, requireRenderOwner } from '../lib/auth';
 import { isSecretConfigured, safeEqual } from '../lib/security';
 import { assertAllowedUrl, BlockedUrlError } from '../lib/fetch-guard';
 import { aiEnabled, checkDailyBudget, checkRate } from '../lib/rate-limit';
@@ -166,6 +166,46 @@ export async function quickAdsRoutes(fastify: FastifyInstance) {
         }
       }
 
+      /**
+       * Render PHẢI có chủ sở hữu trước khi được tạo.
+       *
+       * Trước 02/11/2026 route này gọi `startRender` không kèm dự án, nên dòng `renders`
+       * sinh ra với `project_id` rỗng. Bảng `renders` không có cột `user_id` — quyền sở
+       * hữu đi qua `project_id → projects.user_id` — nên một dòng không dự án là một
+       * dòng KHÔNG AI kiểm được quyền. `/status/:jobId` vì thế trả `output_url` của bất
+       * kỳ job nào cho bất kỳ người đã đăng nhập nào.
+       *
+       * Ba đường vào, theo thứ tự ưu tiên:
+       *   1. Thân yêu cầu có `project_id` → kiểm người gọi có sở hữu nó không.
+       *   2. Có người dùng đã xác minh → tự tạo một dự án `quick_ads` của họ.
+       *   3. Không cả hai (token nội bộ không có phiên người dùng) → từ chối.
+       */
+      const userId = (request as any).viprosellUserId as string | undefined;
+      const duAnGui = (request.body as any).project_id as string | undefined;
+      let projectId: string;
+
+      if (duAnGui) {
+        const chu = await requireProjectOwner(request, reply, duAnGui);
+        if (!chu) return reply; // da gui 401/403/404
+        projectId = duAnGui;
+      } else if (userId) {
+        const tao = await QuickAdsRenderService.taoDuAnQuickAds(userId, {
+          product_title: (request.body as any).product_title || validTitle,
+          product_url: (request.body as any).product_url,
+        });
+        if (!tao.projectId) {
+          return reply.status(500).send({ error: 'PROJECT_CREATE_FAILED', detail: tao.error });
+        }
+        projectId = tao.projectId;
+      } else {
+        // Token noi bo di qua hook xac thuc nen khong co phien nguoi dung. No dung duoc
+        // cho /cost-log (chi doc), nhung tao render thi phai co chu.
+        return reply.status(400).send({
+          error: 'OWNER_REQUIRED',
+          detail: 'Render phai co chu so huu: dang nhap, hoac gui project_id.',
+        });
+      }
+
       const job = await QuickAdsRenderService.startRender({
         product_title: (request.body as any).product_title || validTitle,
         product_summary: (request.body as any).product_summary || validTitle,
@@ -173,7 +213,7 @@ export async function quickAdsRoutes(fastify: FastifyInstance) {
         product_url: (request.body as any).product_url,
         scene_graph: validGraph,
         render_plan,
-      });
+      }, projectId);
 
       return reply.status(202).send({
         success: true,
@@ -189,6 +229,18 @@ export async function quickAdsRoutes(fastify: FastifyInstance) {
 
   // ── GET /status/:jobId ───────────────────────────────────────────────────────
   fastify.get<{ Params: { jobId: string } }>('/status/:jobId', async (request, reply) => {
+    /**
+     * Hook `preHandler` đã bắt buộc token, nhưng đó là XÁC THỰC chứ không phải PHÂN QUYỀN.
+     * Trước 02/11/2026 bất kỳ người đã đăng nhập nào cũng đọc được trạng thái và
+     * `output_url` của job người khác — chỉ cần biết `jobId`.
+     *
+     * `jobId` chính là `renders.id`, nên `requireRenderOwner` dùng được trực tiếp. Nó
+     * cũng từ chối những dòng render cũ không có `project_id`: những dòng đó không ai
+     * chứng minh được quyền, nên không ai được đọc.
+     */
+    const chu = await requireRenderOwner(request, reply, request.params.jobId);
+    if (!chu) return reply; // da gui 400/401/403/404
+
     const job = await QuickAdsRenderService.getJob(request.params.jobId);
     if (!job) {
       return reply.status(404).send({ error: 'Job not found' });
