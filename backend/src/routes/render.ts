@@ -3,7 +3,7 @@ import { CompositionService } from '../services/composition.service';
 import { CreditService } from '../services/credit.service';
 import { creditsFor, specFromRender, specFromRequest, giaiThichCredit } from '../lib/credit-cost';
 import { isSecretConfigured, safeEqual } from '../lib/security';
-import { requireProjectOwner } from '../lib/auth';
+import { requireProjectOwner, requireRenderOwner } from '../lib/auth';
 import { baoVideoXong } from '../services/email.notify';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
@@ -286,10 +286,19 @@ export async function renderRoutes(fastify: FastifyInstance) {
   fastify.post('/retry', async (request, reply) => {
     try {
       const { renderId } = request.body as any;
-      const { data: render } = await supabase.from('renders').select('status').eq('id', renderId).single();
+
+      // Kiem quyen so huu TRUOC moi thu khac.
+      //
+      // Truoc 02/11/2026 route nay khong kiem gi: bat ky ai biet mot renderId deu xep
+      // lai duoc hang doi render cua nguoi khac — dot CPU va TRU CREDIT cua chu so huu.
+      // `renders` khong co cot user_id nen phai di qua project_id -> projects.user_id.
+      const chu = await requireRenderOwner(request, reply, renderId);
+      if (!chu) return reply; // requireRenderOwner da gui 400/401/403/404
+
+      const render = chu.render;
       // Chi 'failed'. 'retryable_failed' khong co trong enum render_status nen
       // khong dong nao mang gia tri do — phan tu chet trong mang JS.
-      if (!render || !['failed'].includes(render.status)) {
+      if (!['failed'].includes(render.status)) {
         return reply.status(400).send({ error: 'Render cannot be retried in current state.' });
       }
       const result = await CompositionService.retryRender(renderId);
@@ -403,6 +412,13 @@ export async function renderRoutes(fastify: FastifyInstance) {
   fastify.get('/status/:renderId', async (request, reply) => {
     try {
       const { renderId } = request.params as any;
+
+      // Truoc 02/11/2026 route nay tra ve trang thai VA output_url cua bat ky render
+      // nao cho bat ky ai goi. renderId la UUID nen khong do duoc bang vet can, nhung
+      // mot URL lo qua log, qua referrer hay qua mot anh chup man hinh la du.
+      const chu = await requireRenderOwner(request, reply, renderId);
+      if (!chu) return reply;
+
       const result = await CompositionService.getJobStatus(renderId);
       if (result.status === 'not_found') return reply.status(404).send({ error: 'Render not found' });
       return reply.send({ success: true, render: result });
