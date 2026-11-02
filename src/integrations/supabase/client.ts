@@ -53,42 +53,83 @@ if (!import.meta.env.PROD) {
 const resolvedUrl = SUPABASE_URL || 'http://localhost:54321';
 const resolvedKey = SUPABASE_ANON_KEY || 'missing_anon_key_check_env';
 
-// --------------------------------------------------------------------------------
-// CUSTOM IN-MEMORY LOCK
-// Bypasses the buggy navigator.locks (which causes F5 freezes in Chromium)
-// while strictly maintaining the sequential execution required by Supabase GoTrue
-// to prevent internal deadlocks.
-// --------------------------------------------------------------------------------
-let isLocking = false;
-const lockQueue: Array<() => void> = [];
+/**
+ * Khoá tuần tự cho GoTrue, thay cho `navigator.locks`.
+ *
+ * ── Vì sao không dùng navigator.locks ──
+ *
+ * Nó gây treo khi F5 trên Chromium, và khoá do nó cấp còn dùng chung giữa các tab.
+ *
+ * ── Vì sao bản tự viết trước đó hỏng ──
+ *
+ * Bản cũ giữ một cờ `isLocking` và một mảng `lockQueue`. Khi một tác vụ xong, phần
+ * `finally` đặt `isLocking = false` RỒI mới lấy mục kế ra chạy — nên mục đó chạy
+ * trong lúc cờ đang là `false`. Lời gọi tiếp theo thấy khoá rảnh và chạy song song;
+ * hai nhánh cùng `shift()` một hàng đợi, và **mục bị bỏ rơi thì promise của nó không
+ * bao giờ resolve**.
+ *
+ * Hậu quả đo được trên production ngày 29/10/2026: mọi lệnh `supabase.from(...)` đều
+ * treo vô hạn, vì supabase-js lấy token qua chính khoá này cho MỌI truy vấn. Nút
+ * "Lưu & Tải lên…" quay mãi, không lỗi, không một dòng nào xuống CSDL suốt sáu
+ * tiếng. `try/catch` không bắt được vì promise treo không ném lỗi.
+ *
+ * ── Cách làm hiện tại ──
+ *
+ * Nối chuỗi promise. Không có cờ để lệch, không có hàng đợi để rơi: mỗi lời gọi chạy
+ * sau khi lời gọi trước kết thúc, và đó là toàn bộ điều GoTrue cần.
+ *
+ * Lỗi KHÔNG được làm đứt chuỗi — một lần làm mới token hỏng mà khoá kẹt theo thì
+ * mọi truy vấn sau đều chết. Nên nhánh nối tiếp nuốt lỗi, còn lỗi thật vẫn trả về
+ * đúng người gọi.
+ *
+ * Tính tái nhập do supabase-js tự lo: `_acquireLock` kiểm `lockAcquired` trước khi
+ * gọi khoá, nên nó không bao giờ xin khoá hai lần lồng nhau.
+ */
+/**
+ * Chờ tối đa bao lâu cho tác vụ ĐANG giữ khoá.
+ *
+ * Đây là phần quan trọng nhất. Chuỗi tuần tự không thôi vẫn kẹt vĩnh viễn nếu một
+ * tác vụ không bao giờ kết thúc — và trên production ngày 29/10/2026 đúng là có:
+ * console in `[Auth] getSession() timed out after 3s`, rồi mọi lệnh
+ * `supabase.from(...)` treo theo, vì supabase-js lấy token qua khoá này cho MỌI
+ * truy vấn. Nút "Lưu & Tải lên…" quay sáu tiếng, không lỗi, không ghi được gì.
+ *
+ * 5 giây: dài hơn mọi lần làm mới token bình thường, ngắn hơn mức người dùng chịu
+ * được. Hết giờ thì đi tiếp chứ không chờ nữa — mất tính loại trừ trong chốc lát
+ * còn hơn treo cả ứng dụng.
+ */
+const HET_GIO_KHOA_MS = 5000;
 
-const memoryLock = async (name: string, ...args: any[]) => {
-  const acquire = args[args.length - 1];
-  if (typeof acquire !== 'function') return Promise.resolve();
+let chuoiKhoa: Promise<unknown> = Promise.resolve();
 
-  return new Promise((resolve, reject) => {
-    const run = async () => {
-      try {
-        const result = await acquire();
-        resolve(result);
-      } catch (e) {
-        reject(e);
-      } finally {
-        isLocking = false;
-        if (lockQueue.length > 0) {
-          const next = lockQueue.shift();
-          if (next) next();
-        }
-      }
-    };
+const memoryLock = <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
+  const truoc = chuoiKhoa;
 
-    if (isLocking) {
-      lockQueue.push(run);
-    } else {
-      isLocking = true;
-      run();
-    }
-  });
+  const ketQua = (async () => {
+    // Chờ tác vụ trước, NHƯNG không chờ mãi.
+    await Promise.race([
+      truoc.then(
+        () => undefined,
+        () => undefined
+      ),
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          console.warn('[Auth] Khoá bị giữ quá 5 giây — bỏ qua để không treo cả ứng dụng');
+          resolve();
+        }, HET_GIO_KHOA_MS)
+      ),
+    ]);
+    return fn();
+  })();
+
+  // Lỗi KHÔNG được làm đứt chuỗi: một lần làm mới token hỏng mà khoá kẹt theo thì
+  // mọi truy vấn sau đều chết.
+  chuoiKhoa = ketQua.then(
+    () => undefined,
+    () => undefined
+  );
+
+  return ketQua;
 };
 
 export const supabase = createClient<Database>(resolvedUrl, resolvedKey, {

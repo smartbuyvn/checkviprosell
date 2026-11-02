@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getSessionSafe } from '@/lib/errorUtils';
 import { callEdgeFunction } from '@/services/edge.client';
 import { packageTypeToDb } from '@/lib/enumMapper';
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
 export interface ScriptGenerateResponse {
   script: any | null;
@@ -28,7 +29,14 @@ export const ScriptService = {
     
     try {
       const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1');
-      const resp = await fetch(`${API_BASE}/ai/script-composer`, {
+      // `fetchWithTimeout`, KHÔNG phải `fetch` trần.
+      //
+      // Các route AI chạy ĐỒNG BỘ: chúng `await` trọn lần gọi LLM rồi mới trả lời.
+      // `fetch` không có hạn chờ nên backend chậm hay treo là trang quay vô hạn —
+      // không thông báo, không nút thử lại, và dự án nằm lại ở trạng thái dở dang.
+      // Đó là nguồn gốc của 36 dự án treo trong cơ sở dữ liệu ngày 28/10.
+      const resp = await fetchWithTimeout(`${API_BASE}/ai/script-composer`, {
+        timeout: 60000,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +77,10 @@ export const ScriptService = {
     if (!session) return { status: 'error', error: 'Chưa đăng nhập' };
     try {
       const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1');
-      const resp = await fetch(`${API_BASE}/ai/job/${jobId}/status`, {
+      // Hạn chờ ngắn: lệnh hỏi trạng thái được gọi lại mỗi 2 giây. Để nó treo thì cả
+      // vòng lặp chờ đứng im, và hạn tổng của vòng lặp mất tác dụng.
+      const resp = await fetchWithTimeout(`${API_BASE}/ai/job/${jobId}/status`, {
+        timeout: 8000,
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await resp.json();
@@ -81,6 +92,20 @@ export const ScriptService = {
   },
 
   /** Read script for a project */
+  /**
+   * Ghi lại các thẻ cảnh sau khi người bán sửa.
+   *
+   * Đây là thứ biến trang Script từ chỗ XEM thành chỗ KIỂM SOÁT. Render đọc thẳng
+   * `scene_cards` từ đây, nên sửa ở đây là đổi đúng video sẽ dựng ra.
+   */
+  async updateSceneCards(projectId: string, sceneCards: unknown[]) {
+    const { error } = await supabase
+      .from('scripts')
+      .update({ scene_cards: sceneCards as never })
+      .eq('project_id', projectId as never);
+    return { error: error?.message ?? null };
+  },
+
   async getByProject(projectId: string) {
     const { data, error } = await supabase
       .from('scripts')

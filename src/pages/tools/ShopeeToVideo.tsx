@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { RenderJobStatus } from "@/components/tools/RenderJobStatus";
 import { Link2, Sparkles } from "lucide-react";
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
 export default function ShopeeToVideo() {
-  const { session } = useAuth();
   const { toast } = useToast();
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,11 +26,17 @@ export default function ShopeeToVideo() {
     setJobId(null);
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
-      const res = await fetch(`${API_BASE}/quick-ads/render`, {
+      // useAuth() KHONG co truong session, nen cach cu luon gui "Bearer undefined"
+      // va backend tu choi 401. Lay token ngay luc goi, getSession() con tu lam moi.
+      const { data: { session } } = await supabase.auth.getSession();
+      // Hạn chờ: cả codebase dùng `fetchWithTimeout`. `fetch` trần treo vô hạn khi
+      // backend không trả lời, và giao diện chỉ còn một vòng xoay không lối thoát.
+      const res = await fetchWithTimeout(`${API_BASE}/quick-ads/render`, {
+        timeout: 60000,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${session?.access_token ?? ''}`
         },
         body: JSON.stringify({ product_url: url })
       });

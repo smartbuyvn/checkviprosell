@@ -6,6 +6,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionSafe } from '@/lib/errorUtils';
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1') + '/ai';
 
@@ -51,7 +52,14 @@ export const ConceptService = {
     if (!session) return { concepts: null, error: 'Chưa đăng nhập' };
 
     try {
-      const resp = await fetch(`${API_BASE}/concepts`, {
+      // `fetchWithTimeout`, KHÔNG phải `fetch` trần.
+      //
+      // Các route AI chạy ĐỒNG BỘ: chúng `await` trọn lần gọi LLM rồi mới trả lời.
+      // `fetch` không có hạn chờ nên backend chậm hay treo là trang quay vô hạn —
+      // không thông báo, không nút thử lại, và dự án nằm lại ở trạng thái dở dang.
+      // Đó là nguồn gốc của 36 dự án treo trong cơ sở dữ liệu ngày 28/10.
+      const resp = await fetchWithTimeout(`${API_BASE}/concepts`, {
+        timeout: 60000,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +85,10 @@ export const ConceptService = {
     const session = await getSessionSafe(supabase);
     if (!session) return { status: 'error', error: 'Chưa đăng nhập' };
     try {
-      const resp = await fetch(`${API_BASE}/job/${jobId}/status`, {
+      // Hạn chờ ngắn: lệnh hỏi trạng thái được gọi lại mỗi 2 giây. Để nó treo thì cả
+      // vòng lặp chờ đứng im, và hạn tổng của vòng lặp mất tác dụng.
+      const resp = await fetchWithTimeout(`${API_BASE}/job/${jobId}/status`, {
+        timeout: 8000,
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await resp.json();

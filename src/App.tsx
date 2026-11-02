@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,32 +6,44 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/hooks/useSettings";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthGuard, AdminGuard, GuestGuard } from "@/guards/RouteGuards";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ROUTES } from "@/constants/routes";
 
+/**
+ * Nap trang theo nhu cau.
+ *
+ * Truoc day 21 trang nam chung mot khoi 243 KB gzip: mo trang chu cung tai luon
+ * Admin Settings, wizard tao du an va bang dieu khien doi tac. Tach ra thi khach
+ * chi tai phan minh thuc su mo.
+ *
+ * Landing va NotFound van nap san: do la trang vao dau tien, nap theo nhu cau se
+ * them mot vong mang ngay truoc khi ve duoc gi len man hinh.
+ */
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const NewProject = lazy(() => import("./pages/NewProject"));
+const ProductAnalysis = lazy(() => import("./pages/ProductAnalysis"));
+const ConceptSelection = lazy(() => import("./pages/ConceptSelection"));
+const ScriptRender = lazy(() => import("./pages/ScriptRender"));
+const Account = lazy(() => import("./pages/Account"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Billing = lazy(() => import("./pages/Billing"));
+const Affiliate = lazy(() => import("./pages/Affiliate"));
+const ScenePreview = lazy(() => import("./pages/ScenePreview"));
+const ShopeeToVideo = lazy(() => import("./pages/tools/ShopeeToVideo"));
+const ImagesToVideo = lazy(() => import("./pages/tools/ImagesToVideo"));
+
 // Pages
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AuthCallback from "./pages/AuthCallback";
-import Dashboard from "./pages/Dashboard";
-import NewProject from "./pages/NewProject";
-import ProductAnalysis from "./pages/ProductAnalysis";
-import ConceptSelection from "./pages/ConceptSelection";
-import ScriptRender from "./pages/ScriptRender";
-import Account from "./pages/Account";
-import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Billing from "./pages/Billing";
-import Affiliate from "./pages/Affiliate";
-import ScenePreview from "./pages/ScenePreview";
-import ShopeeToVideo from "./pages/tools/ShopeeToVideo";
-import ImagesToVideo from "./pages/tools/ImagesToVideo";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +55,12 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            {/* Trang nap theo nhu cau can mot man hinh cho trong luc tai khoi ma.
+                Khong co Suspense thi React nem loi thay vi hien gi do. */}
+            {/* Bat loi luc render de man hinh khong trang tron.
+                Dat TRONG BrowserRouter de nut "Tai lai"/"Ve Dashboard" dung duoc. */}
+            <ErrorBoundary khuVuc="trang">
+            <Suspense fallback={<div className="min-h-screen" />}>
             <Routes>
               {/* Public */}
               <Route path={ROUTES.LANDING} element={<Landing />} />
@@ -75,6 +94,8 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
+            </ErrorBoundary>
           </BrowserRouter>
         </SettingsProvider>
       </AuthProvider>

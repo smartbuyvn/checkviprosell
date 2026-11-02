@@ -14,7 +14,28 @@ export const SettingsService = {
       .from('system_settings')
       .select('key, value');
 
-    if (error || !data || data.length === 0) {
+    // Phân biệt ba tình huống, trước đây gộp làm một và đó là nguồn gốc lỗi
+    // "gạt công tắc xong nó bật lại":
+    //
+    //   - đọc lỗi (RLS chặn, mất mạng) → dùng mặc định, nhưng NÓI RA
+    //   - bảng rỗng (chưa seed)        → dùng mặc định, nhưng NÓI RA
+    //   - có dòng                      → dùng giá trị thật
+    //
+    // Gộp lại thì giao diện hiện mặc định LOCALONLYMODE=true mà không ai biết
+    // đó là mặc định, nên tưởng cài đặt không lưu được.
+    if (error) {
+      console.warn(
+        `[Settings] Không đọc được system_settings (${error.message}). ` +
+        'Đang hiện giá trị mặc định — KHÔNG phải trạng thái thật của hệ thống.'
+      );
+      return { ...DEFAULT_SYSTEM_SETTINGS };
+    }
+
+    if (!data || data.length === 0) {
+      console.warn(
+        '[Settings] Bảng system_settings rỗng. Đang hiện giá trị mặc định — ' +
+        'chạy migration seed để giao diện phản ánh đúng thứ đang chạy.'
+      );
       return { ...DEFAULT_SYSTEM_SETTINGS };
     }
 

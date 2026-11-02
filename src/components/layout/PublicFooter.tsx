@@ -20,7 +20,10 @@ export const PublicFooter = forwardRef<HTMLElement>((_, ref) => {
       const el = document.querySelector(hash);
       el?.scrollIntoView({ behavior: 'smooth' });
     } else {
-      // Dùng chung pattern với Header: Nối thẳng hash vào URL để browser tự trượt
+      // `hash` đã có sẵn dấu '#', nên nối với '/' ra đúng '/#pricing'.
+      //
+      // Trình duyệt KHÔNG tự trượt ở đây — React Router chỉ đổi URL. Phần cuộn do
+      // Landing lo khi nó gắn vào DOM và thấy có hash trên địa chỉ.
       navigate('/' + hash);
     }
   };

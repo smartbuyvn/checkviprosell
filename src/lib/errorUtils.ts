@@ -50,16 +50,43 @@ export function getUserErrorMessage(err: unknown, fallback = 'Đã xảy ra lỗ
  * 
  * Usage: Replace `supabase.auth.getSession()` with `getSessionSafe(supabase)`
  */
-export async function getSessionSafe(supabase: any): Promise<{ access_token: string } | null> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-  } catch (err) {
-    if (isAbortOrLockError(err)) {
-      console.debug('[Auth] getSession Lock/Abort — returning null session');
-    } else {
-      console.warn('[Auth] getSession failed:', err);
+/**
+ * Chờ tối đa bao lâu cho `getSession()`. Bằng mức `useAuth` đang dùng.
+ */
+const HET_GIO_PHIEN_MS = 3000;
+
+export async function getSessionSafe(
+  supabase: any
+): Promise<{ access_token: string; user?: { id: string } } | null> {
+  // PHẢI có timeout, không chỉ try/catch.
+  //
+  // `getSession()` giành khoá navigator.locks và TREO VÔ HẠN khi khoá bị giữ — đo
+  // thật trên production ngày 29/10. Promise treo không ném lỗi, nên `catch` không
+  // bắt được và người gọi chờ mãi: nút "Lưu & Tải lên…" quay vô tận, không báo gì,
+  // không ghi được dòng nào xuống CSDL.
+  //
+  // `useAuth` đã dùng đúng cách này từ trước; tầng service thì chưa, nên mọi nơi lấy
+  // token đều treo theo. Đây là chỗ bịt chung cho tất cả.
+  const doc = (async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    } catch (err) {
+      if (isAbortOrLockError(err)) {
+        console.debug('[Auth] getSession Lock/Abort — returning null session');
+      } else {
+        console.warn('[Auth] getSession failed:', err);
+      }
+      return null;
     }
-    return null;
-  }
+  })();
+
+  const hetGio = new Promise<null>((resolve) =>
+    setTimeout(() => {
+      console.warn('[Auth] getSession() quá 3 giây — coi như chưa có phiên');
+      resolve(null);
+    }, HET_GIO_PHIEN_MS)
+  );
+
+  return Promise.race([doc, hetGio]);
 }

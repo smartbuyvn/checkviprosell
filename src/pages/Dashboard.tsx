@@ -18,6 +18,10 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { StatCard } from '@/components/shared/StatCard';
 import { StatusPill } from '@/components/shared/StatusPill';
+import { VideoCard, stageOf } from '@/components/shared/VideoCard';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ROUTES, buildRoute } from '@/constants/routes';
 import { PACKAGE_LIST } from '@/constants/packages';
 import { ProjectService } from '@/services/project.service';
@@ -47,19 +51,65 @@ function getProjectRoute(project: { id: string; status: string }): string {
 }
 
 /** Max number of automatic retries on AbortError / Lock broken */
+/** 24 vua kin man hinh rong nhat (6 cot x 4 hang) ma van nhe. */
+const PAGE_SIZE = 24;
+
 const MAX_RETRY = 2;
 const RETRY_DELAY_MS = 1500;
+
+/** Bộ lọc trạng thái, gom các mã trong CSDL về nhóm người bán hiểu được. */
+const STATUS_FILTERS = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'done', label: 'Hoàn thành' },
+  // Tách "đang dựng" khỏi "chưa hoàn tất". Gộp chung thì tab "Đang xử lý" đếm cả
+  // bản nháp — ngày 28/10 nó hiện 21 mục trong khi cơ sở dữ liệu không có một job
+  // nào đang chạy. Người bán nhìn con số đó và tưởng hệ thống đang tắc.
+  { key: 'working', label: 'Đang dựng' },
+  { key: 'waiting', label: 'Chưa hoàn tất' },
+  { key: 'failed', label: 'Không thành công' },
+] as const;
+
+type StatusFilterKey = (typeof STATUS_FILTERS)[number]['key'];
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
+  /** Còn trang sau không: lấy đủ PAGE_SIZE nghĩa là nhiều khả năng còn. */
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [renderCount, setRenderCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  /** Đã xử lý bao nhiêu trong lượt dọn — dọn 36 dự án mất khá lâu, phải cho thấy nhịp. */
+  const [bulkDone, setBulkDone] = useState(0);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('all');
+
+  /**
+   * Lọc ở phía trình duyệt, không gọi lại máy chủ.
+   *
+   * Một người bán có vài chục tới vài trăm dự án, đã nằm sẵn trong bộ nhớ — gọi lại
+   * máy chủ mỗi lần gõ một chữ là chậm hơn và tốn hơn mà không được gì.
+   */
+  const filteredVideos = projects.filter((p: any) => {
+    const q = query.trim().toLowerCase();
+    if (q && !String(p.title ?? '').toLowerCase().includes(q)) return false;
+
+    if (statusFilter === 'done') return !!p.video;
+    if (statusFilter === 'failed') return p.status === 'failed';
+
+    // Dùng chính hàm mà thẻ video dùng. Hai danh sách trạng thái song song là cách
+    // chắc chắn để bộ lọc và cái thẻ nó lọc ra nói hai điều khác nhau.
+    const stage = stageOf(p.video ? 'completed' : p.status, !!p.video?.output_url);
+    if (statusFilter === 'working') return stage === 'working';
+    if (statusFilter === 'waiting') return stage === 'waiting';
+    return true;
+  });
   const retryCountRef = useRef(0);
 
   const handleDelete = async (e: React.MouseEvent, project: any) => {
@@ -67,8 +117,10 @@ const Dashboard = () => {
     
     const isProcessing = ['analyzing', 'queued', 'processing', 'rendering'].includes(project.status);
     const msg = isProcessing 
-      ? 'Video đang được xử lý. Hủy tiến trình và chuyển vào thùng rác?'
-      : 'Xóa video khỏi dashboard? Credits, thanh toán và hoa hồng sẽ không thay đổi.';
+      // Nói rõ hai điều khách cần biết trước khi bấm: còn cứu được bao lâu, và
+      // sau đó mất hẳn. Bản cũ ghi "Xóa video khỏi dashboard" nghe như chỉ ẩn đi.
+      ? 'Video đang được xử lý. Hủy tiến trình và chuyển vào thùng rác?\n\nVideo nằm trong thùng rác 30 ngày, sau đó bị xóa vĩnh viễn khỏi máy chủ.'
+      : 'Chuyển video vào thùng rác?\n\nVideo nằm đó 30 ngày rồi bị xóa vĩnh viễn khỏi máy chủ — kể cả link đã chia sẻ cũng sẽ hỏng.\n\nCredits đã dùng không được hoàn lại.';
 
     if (!window.confirm(msg)) return;
 
@@ -88,6 +140,77 @@ const Dashboard = () => {
     }
   };
 
+  /**
+   * Dọn mọi bản nháp dở dang đang hiện trong bộ lọc.
+   *
+   * Xoá từng cái khi có 24 dự án treo là cực hình, và chính vì vậy người bán sẽ không
+   * dọn — họ bỏ qua, rồi bảng điều khiển ngày càng khó dùng.
+   *
+   * Chỉ áp cho nhóm "chưa hoàn tất": KHÔNG đụng tới video đã xong (khách mất thành
+   * phẩm) và KHÔNG đụng tới thứ máy đang dựng (huỷ giữa chừng vẫn tốn credit đã trừ).
+   */
+  /**
+   * Những dự án được phép dọn hàng loạt, theo tab đang chọn.
+   *
+   * KHÔNG BAO GIỜ gồm video đã hoàn thành (khách mất thành phẩm) và video đang dựng
+   * (huỷ giữa chừng vẫn tốn credit đã trừ). Hai nhóm đó chỉ xoá được từng cái, có
+   * hộp xác nhận riêng.
+   *
+   * Bản đầu chỉ bắt nhóm 'waiting' nên 5 dự án HỎNG không dọn được — mà video hỏng
+   * mới là thứ người bán muốn dọn nhất.
+   */
+  const nhomDonDuoc = (() => {
+    const cho = filteredVideos.filter((p: any) => !p.video && stageOf(p.status, false) === 'waiting');
+    const hong = filteredVideos.filter((p: any) => !p.video && p.status === 'failed');
+
+    if (statusFilter === 'waiting') return { ds: cho, nhan: 'bản nháp chưa hoàn tất' };
+    if (statusFilter === 'failed') return { ds: hong, nhan: 'video không thành công' };
+    if (statusFilter === 'all') return { ds: [...cho, ...hong], nhan: 'dự án dở dang và hỏng' };
+    // Tab "Hoàn thành" và "Đang dựng": không cho dọn hàng loạt.
+    return { ds: [] as any[], nhan: '' };
+  })();
+
+  const handleBulkDelete = async () => {
+    const { ds, nhan } = nhomDonDuoc;
+    if (ds.length === 0) return;
+
+    const msg =
+      `Chuyển ${ds.length} ${nhan} vào thùng rác?
+
+` +
+      `Chúng nằm đó 30 ngày rồi bị xoá vĩnh viễn khỏi máy chủ.
+
+` +
+      `Video đã hoàn thành và video đang dựng KHÔNG bị ảnh hưởng.`;
+    if (!window.confirm(msg)) return;
+
+    setBulkDeleting(true);
+    setBulkDone(0);
+
+    // Tuần tự chứ không song song: hàng chục lệnh xoá cùng lúc dễ chạm giới hạn tần
+    // suất, và lỗi giữa chừng thì không biết cái nào đã xoá.
+    const ok: string[] = [];
+    const loi: string[] = [];
+    for (const p of ds) {
+      const res = await ProjectService.trashProject(p.id);
+      if (res.error) loi.push(res.error);
+      else ok.push(p.id);
+      setBulkDone(ok.length + loi.length);
+    }
+
+    setBulkDeleting(false);
+    setBulkDone(0);
+
+    if (ok.length > 0) setProjects((prev) => prev.filter((p: any) => !ok.includes(p.id)));
+    if (loi.length === 0) {
+      toast.success(`Đã dọn ${ok.length} dự án`);
+    } else {
+      // Nói rõ lý do đầu tiên thay vì chỉ đếm: "thử lại" mà không biết vì sao hỏng
+      // thì lần sau cũng hỏng y hệt.
+      toast.error(`Dọn được ${ok.length}/${ds.length}. Lỗi: ${loi[0]}`);
+    }
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -98,7 +221,9 @@ const Dashboard = () => {
        * No single failure kills the entire page.
        * ─────────────────────────────────────────────────────────────── */
       const [projRes, creditRes, renderRes, summaryRes] = await Promise.allSettled([
-        ProjectService.listByUser(),
+        // Lấy kèm video và độ dài trong MỘT truy vấn, để lưới thẻ có đủ dữ liệu mà
+        // không phải gọi thêm một lượt cho mỗi dự án.
+        ProjectService.listWithVideos(),
         CreditService.getBalance(),
         RenderService.getCompletedCount(),
         BillingService.getBillingSummary(),
@@ -125,7 +250,11 @@ const Dashboard = () => {
           console.error('[Dashboard] Projects query error:', projRes.value.error);
           setError('Không tải được danh sách dự án: ' + projRes.value.error);
         } else {
-          setProjects(projRes.value.projects || []);
+          const rows = projRes.value.projects || [];
+          setProjects(rows);
+          // Lay du mot trang thi nhieu kha nang con nua. Khong dung count(*) vi
+          // dem toan bang moi lan mo trang dat hon la thinh thoang hien thua mot nut.
+          setHasMore(rows.length >= PAGE_SIZE);
         }
       } else {
         console.error('[Dashboard] Projects fetch rejected:', projRes.reason);
@@ -173,13 +302,37 @@ const Dashboard = () => {
     }
   }, []);
 
+  /** Tải thêm một trang, nối vào cuối danh sách hiện có. */
+  const loadMore = useCallback(async () => {
+    setLoadingMore(true);
+    try {
+      const res = await ProjectService.listWithVideos(PAGE_SIZE, projects.length);
+      const rows = res.projects || [];
+      // Loc theo id phong khi co du an moi chen vao dau trong luc dang xem:
+      // khong loc thi cung mot the hien hai lan va React canh bao trung key.
+      setProjects((prev) => {
+        const seen = new Set(prev.map((p: any) => p.id));
+        return [...prev, ...rows.filter((r: any) => !seen.has(r.id))];
+      });
+      setHasMore(rows.length >= PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [projects.length]);
+
   /* ─── CRITICAL: Wait for auth to fully resolve before fetching ───
    * This prevents the race condition where Dashboard API calls 
    * compete with onAuthStateChange for Supabase session locks.
    * ─────────────────────────────────────────────────────────────── */
   useEffect(() => {
     if (authLoading) return; // Auth still resolving — wait
-    if (!user) return;       // Not authenticated — AuthGuard will redirect
+    if (!user) {
+      // Không có phiên đăng nhập thì AuthGuard sẽ chuyển hướng, nhưng phải tắt cờ
+      // loading ở đây. Trước đây hàm này thoát sớm mà không tắt, nên loading giữ
+      // nguyên giá trị khởi tạo true và trang quay vòng mãi không bao giờ dừng.
+      setLoading(false);
+      return;
+    }
     load();
   }, [authLoading, user, load]);
 
@@ -268,58 +421,110 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent projects */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-base font-semibold text-foreground">Dự án gần đây</h2>
+      {/* ─── Thư viện video ───
+          Thay hai mục cũ ("Dự án gần đây" dạng danh sách + "Video đã render" chỉ đếm
+          số rồi bảo khách tự vào từng dự án mà tìm). Người bán mở trang này để lấy
+          video đi đăng, nên video phải nhìn thấy và lấy được ngay tại đây. */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-base font-semibold text-foreground">
+            Video của bạn
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              {filteredVideos.length}
+              {filteredVideos.length !== projects.length && ` / ${projects.length}`}
+            </span>
+          </h2>
+
+          <div className="flex items-center gap-2">
+          {nhomDonDuoc.ds.length >= 2 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="h-8 text-xs text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              {bulkDeleting
+                ? `Đang dọn ${bulkDone}/${nhomDonDuoc.ds.length}...`
+                : `Dọn ${nhomDonDuoc.ds.length}`}
+            </Button>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm theo tên..."
+              className="h-8 w-48 pl-8 text-xs"
+            />
+          </div>
+          </div>
         </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setStatusFilter(f.key)}
+              className={cn(
+                'rounded-full border px-2.5 py-1 text-[11px] transition-colors',
+                statusFilter === f.key
+                  ? 'border-primary bg-primary/10 text-foreground font-medium'
+                  : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {projects.length === 0 ? (
           <EmptyState
-            title="Chưa có dự án nào"
-            description="Tạo dự án đầu tiên để bắt đầu tạo video bán hàng."
-            actionLabel="Tạo dự án đầu tiên"
+            title="Bạn chưa có video nào"
+            description="Tạo dự án đầu tiên để bắt đầu làm video bán hàng."
+            actionLabel="Tạo video đầu tiên"
             onAction={() => navigate(ROUTES.NEW_PROJECT)}
           />
+        ) : filteredVideos.length === 0 ? (
+          <div className="rounded-xl border border-border/60 bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">Không có video nào khớp bộ lọc.</p>
+          </div>
         ) : (
-          <div className="space-y-2">
-            {projects.slice(0, 5).map((p) => (
-              <div
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {filteredVideos.map((p) => (
+              <VideoCard
                 key={p.id}
-                onClick={() => navigate(getProjectRoute(p))}
-                className="rounded-xl bg-surface shadow-card p-4 flex items-center justify-between cursor-pointer hover:shadow-card-hover hover:translate-y-[-1px] transition-all"
-              >
-                <div>
-                  <p className="font-display text-sm font-medium text-foreground">{p.title}</p>
-                  <p className="text-xs text-muted-foreground">{p.package_type} • {new Date(p.created_at).toLocaleDateString('vi')}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusPill status={p.status} />
-                  <div className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors ml-2" onClick={(e) => handleDelete(e, p)}>
-                    {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground ml-1" />
-                </div>
-              </div>
+                video={{
+                  id: p.id,
+                  title: p.title,
+                  status: p.video ? 'completed' : p.status,
+                  durationSec: p.durationSec ?? null,
+                  outputUrl: p.video?.output_url ?? null,
+                  thumbnailUrl: p.video?.thumbnail_url ?? null,
+                  createdAt: p.created_at,
+                }}
+                onOpen={() => navigate(getProjectRoute(p))}
+                onDelete={(e) => handleDelete(e, p)}
+                deleting={deletingId === p.id}
+              />
             ))}
           </div>
         )}
-      </div>
 
-      {/* Recent renders */}
-      <div>
-        <h2 className="font-display text-base font-semibold text-foreground mb-3">Video đã render</h2>
-        {renderCount === 0 ? (
-          <div className="rounded-xl bg-surface shadow-card p-6 text-center">
-            <Film className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Chưa có video nào. Tạo dự án và render video đầu tiên.</p>
-          </div>
-        ) : (
-          <div className="rounded-xl bg-surface shadow-card p-6 text-center">
-            <Film className="w-8 h-8 text-primary mx-auto mb-2" />
-            <p className="text-sm text-foreground font-medium">{renderCount} video đã render</p>
-            <p className="text-xs text-muted-foreground mt-1">Xem trong từng dự án để tải video.</p>
+        {hasMore && (
+          <div className="flex justify-center pt-1">
+            <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Đang tải...' : 'Xem thêm'}
+            </Button>
           </div>
         )}
+
+        <p className="text-[11px] text-muted-foreground">
+          Bạn có thể đóng trình duyệt trong lúc chờ — video vẫn được dựng tiếp.
+        </p>
       </div>
     </motion.div>
   );

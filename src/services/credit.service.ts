@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { currentUserId } from '@/lib/currentUser';
 
 /* ──────────────────────── Types ──────────────────────── */
 
@@ -42,9 +43,16 @@ export const CreditService = {
    */
   async getBalance(): Promise<CreditBalanceResult> {
     try {
+      // Phải lọc theo user_id, không trông vào RLS: tài khoản admin có chính sách
+      // đọc được toàn bộ credit_ledger, nên truy vấn thiếu điều kiện này sẽ lấy
+      // dòng mới nhất của MỘT KHÁCH BẤT KỲ và hiện ra như số dư của admin.
+      const uid = await currentUserId();
+      if (!uid) return { balance: 0, error: null };
+
       const { data, error } = await supabase
         .from('credit_ledger')
         .select('balance_after')
+        .eq('user_id', uid as never)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -69,9 +77,13 @@ export const CreditService = {
    */
   async getLedger(limit: number = 50): Promise<CreditLedgerResult> {
     try {
+      const uid = await currentUserId();
+      if (!uid) return { entries: [], error: null };
+
       const { data, error } = await supabase
         .from('credit_ledger')
         .select('*')
+        .eq('user_id', uid as never)
         .order('created_at', { ascending: false })
         .limit(limit);
 

@@ -80,70 +80,81 @@ const ProductAnalysis = () => {
 
   const runAnalysis = useCallback(async () => {
     if (!projectId) return;
-    setStatus('loading');
-    setErrorMsg(null);
-    setErrorDetails([]);
-    setDirty(false);
+    try {
+      setStatus('loading');
+      setErrorMsg(null);
+      setErrorDetails([]);
+      setDirty(false);
 
-    const result = await IntelService.analyze(projectId);
+      const result = await IntelService.analyze(projectId);
 
-    if (result.error) {
-      setStatus('failed');
-      setErrorMsg(result.error);
-      setErrorDetails((result as any).details || []);
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.jobId) {
-      let attempts = 0;
-      const maxAttempts = 30; // 60 seconds (30 * 2s)
-
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-
-        // 1. Check if data is ready in DB
-        const { intel: existing } = await IntelService.getByProject(projectId);
-        if (existing && existing.confidence_score && existing.confidence_score > 0) {
-          setIntel({
-            product_name: existing.product_name || '',
-            category: existing.category || 'other',
-            target_buyer: existing.target_buyer || '',
-            price_band: existing.price_band || 'mid',
-            usp_list: (existing.usp_list as string[]) || [],
-            pain_points: (existing.pain_points as string[]) || [],
-            objections: (existing.objections as string[]) || [],
-            trust_signals: (existing.trust_signals as string[]) || [],
-            use_context: (existing.use_context as string[]) || [],
-            recommended_package_fit: (existing.recommended_package_fit as string[]) || [],
-            confidence_score: existing.confidence_score || 0,
-          });
-          setStatus('success');
-          setProjectStatus('ready');
-          toast.success('Phân tích sản phẩm hoàn tất!');
-          return;
-        }
-
-        // 2. Check job status for failure or backend error
-        const jobStatus = await IntelService.pollJobStatus(result.jobId);
-        if (jobStatus.status === 'failed' || jobStatus.status === 'error') {
-          setStatus('failed');
-          setErrorMsg(jobStatus.error || 'AI Worker xử lý thất bại');
-          toast.error(jobStatus.status === 'error' ? 'Lỗi kết nối Backend' : 'AI Worker xử lý thất bại');
-          return;
-        }
+      if (result.error) {
+        setStatus('failed');
+        setErrorMsg(result.error);
+        setErrorDetails((result as any).details || []);
+        toast.error(result.error);
+        return;
       }
 
+      if (result.jobId) {
+        let attempts = 0;
+        const maxAttempts = 30; // 60 seconds (30 * 2s)
+
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
+
+          // 1. Check if data is ready in DB
+          const { intel: existing } = await IntelService.getByProject(projectId);
+          if (existing && existing.confidence_score && existing.confidence_score > 0) {
+            setIntel({
+              product_name: existing.product_name || '',
+              category: existing.category || 'other',
+              target_buyer: existing.target_buyer || '',
+              price_band: existing.price_band || 'mid',
+              usp_list: (existing.usp_list as string[]) || [],
+              pain_points: (existing.pain_points as string[]) || [],
+              objections: (existing.objections as string[]) || [],
+              trust_signals: (existing.trust_signals as string[]) || [],
+              use_context: (existing.use_context as string[]) || [],
+              recommended_package_fit: (existing.recommended_package_fit as string[]) || [],
+              confidence_score: existing.confidence_score || 0,
+            });
+            setStatus('success');
+            setProjectStatus('ready');
+            toast.success('Phân tích sản phẩm hoàn tất!');
+            return;
+          }
+
+          // 2. Check job status for failure or backend error
+          const jobStatus = await IntelService.pollJobStatus(result.jobId);
+          if (jobStatus.status === 'failed' || jobStatus.status === 'error') {
+            setStatus('failed');
+            setErrorMsg(jobStatus.error || 'AI Worker xử lý thất bại');
+            toast.error(jobStatus.status === 'error' ? 'Lỗi kết nối Backend' : 'AI Worker xử lý thất bại');
+            return;
+          }
+        }
+
+        setStatus('failed');
+        setErrorMsg('Hệ thống bị quá tải hoặc phản hồi chậm (Timeout). Vui lòng tải lại trang hoặc thử lại sau.');
+        toast.error('Quá thời gian chờ AI xử lý');
+      } else if (result.intel) {
+        // Fallback for legacy sync backend
+        setIntel(result.intel);
+        setStatus('success');
+        setProjectStatus('ready');
+        toast.success('Phân tích sản phẩm hoàn tất!');
+      }
+    } catch (e: any) {
+      // Lưới an toàn cuối cùng: trang này không có try/catch nào khác.
+      //
+      // Một lỗi bất ngờ ở bất kỳ đâu trong luồng bất đồng bộ sẽ để `status` kẹt ở
+      // 'loading' vĩnh viễn — người bán chỉ thấy vòng xoay, không thông báo, không nút
+      // thử lại, và dự án nằm lại ở trạng thái dở dang. Đó là cơ chế đã sinh ra 36 dự
+      // án treo trong cơ sở dữ liệu.
       setStatus('failed');
-      setErrorMsg('Hệ thống bị quá tải hoặc phản hồi chậm (Timeout). Vui lòng tải lại trang hoặc thử lại sau.');
-      toast.error('Quá thời gian chờ AI xử lý');
-    } else if (result.intel) {
-      // Fallback for legacy sync backend
-      setIntel(result.intel);
-      setStatus('success');
-      setProjectStatus('ready');
-      toast.success('Phân tích sản phẩm hoàn tất!');
+      setErrorMsg(e?.message || 'Có lỗi không mong đợi. Tải lại trang rồi thử lại.');
     }
   }, [projectId]);
 

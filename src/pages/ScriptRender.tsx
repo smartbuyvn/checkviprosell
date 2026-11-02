@@ -5,18 +5,21 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { creditsFor } from '@/lib/creditCost';
+import { cn } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   FileText, Play, Clock, Hash, Image, Type, Copy, Check,
   RefreshCw, Loader2, ChevronRight, ChevronLeft, Video,
   Download, AlertTriangle, Film, Sparkles, Monitor, Eye,
-  Layers, MessageSquare,
-} from 'lucide-react';
+  Layers, MessageSquare, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +27,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { ScriptService } from '@/services/script.service';
 import { ProjectService } from '@/services/project.service';
 import { RenderService, type RenderJob } from '@/services/render.service';
-import { AssetService } from '@/services/asset.service';
+import { AssetService, assetUrls } from '@/services/asset.service';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 
@@ -73,6 +76,9 @@ const ScriptRender = () => {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  /** Có thay đổi chưa lưu trong tab Cảnh. */
+  const [scenesDirty, setScenesDirty] = useState(false);
+  const [savingScenes, setSavingScenes] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [script, setScript] = useState<any>(null);
   const [visualPack, setVisualPack] = useState<any>(null);
@@ -89,11 +95,31 @@ const ScriptRender = () => {
 
   // Preview state
   const [previewAspect, setPreviewAspect] = useState<'9:16' | '16:9' | '1:1'>('9:16');
+
+  /**
+   * Tuỳ chọn lúc dựng.
+   *
+   * Trước 30/10 hai ô "Không chèn chữ" và "Cắt viền ảnh" chỉ có ở bước tạo dự án, và
+   * trang này gửi `rawInput` KHÔNG mang chúng — nên khách tick xong rồi dựng lại từ
+   * đây thì chúng biến mất. Đo trên CSDL: không một render nào từng mang hai cờ đó.
+   *
+   * Đặt ngay cạnh nút Render thì khách thấy mình đang chọn gì cho đúng lần dựng này.
+   */
+  const [giongDoc, setGiongDoc] = useState<'nu' | 'nam'>('nu');
+  const [khongChenChu, setKhongChenChu] = useState(false);
+  const [catVienAnh, setCatVienAnh] = useState(false);
   const [showSafeZone, setShowSafeZone] = useState(true);
 
-  const loadData = useCallback(async () => {
+  /**
+   * @param imLang Nạp lại mà KHÔNG lật trang về trạng thái đang tải.
+   *
+   * Vòng lặp theo dõi render gọi hàm này mỗi 3 giây. Với `setLoading(true)` mỗi lần,
+   * cả trang biến mất rồi hiện lại ba giây một — đó chính là hiện tượng màn hình chớp
+   * giật trong lúc render. Lần nạp ĐẦU vẫn cần skeleton; các lần nạp nền thì không.
+   */
+  const loadData = useCallback(async (imLang = false) => {
     if (!projectId) return;
-    setLoading(true);
+    if (!imLang) setLoading(true);
     setError(null);
     try {
       const [projRes, scriptRes, vpRes, capRes, renderRes] = await Promise.all([
@@ -116,7 +142,8 @@ const ScriptRender = () => {
 
       if (projRes.project.status === 'conceptready' && !scriptRes.script && !hasAutoTriggered.current) {
         hasAutoTriggered.current = true;
-        handleGenerate();
+        // Truyền thẳng dự án vừa đọc được, KHÔNG trông vào state `project`.
+        handleGenerate(projRes.project);
       }
     } finally {
       setLoading(false);
@@ -125,19 +152,26 @@ const ScriptRender = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  async function handleGenerate() {
+  /**
+   * @param duAn Dự án để lấy `package_type`. PHẢI truyền vào khi gọi ngay sau
+   *   `setProject(...)`: React cập nhật state bất đồng bộ, nên biến `project` lúc đó
+   *   vẫn còn `null` và `project.package_type` ném lỗi. Đó chính là lỗi ngày 29/10 —
+   *   `loadData` tự gọi hàm này khi dự án ở trạng thái `conceptready` và chưa có
+   *   script, tức đúng lúc `project` chưa kịp cập nhật.
+   */
+  async function handleGenerate(duAn?: any) {
     if (!projectId) return;
     setGenerating(true);
     setError(null);
     try {
+      const nguon = duAn ?? project;
       // Ensure package_type is sent without underscores for backend API
-      const apiPackageType = (project.package_type || 'quick_ads').replace('_', '');
+      const apiPackageType = (nguon?.package_type || 'quick_ads').replace('_', '');
       const res = await ScriptService.generate(projectId, apiPackageType);
       
       if (res.error && !res.jobId) {
         setError(res.error);
         toast({ title: 'Lỗi tạo script', description: res.error, variant: 'destructive' });
-        setGenerating(false);
         return;
       }
 
@@ -157,21 +191,68 @@ const ScriptRender = () => {
           } else if (jobStatus.status === 'failed') {
             setError(jobStatus.error || 'Lỗi khi tạo script');
             toast({ title: 'Lỗi tạo script', description: jobStatus.error || 'AI xử lý thất bại', variant: 'destructive' });
-            setGenerating(false);
             return;
           }
         }
         
         setError('Hệ thống bị quá tải. Vui lòng tải lại trang.');
         toast({ title: 'Timeout', description: 'Quá thời gian chờ AI', variant: 'destructive' });
-        setGenerating(false);
       } else {
         toast({ title: 'Script đã tạo xong!' });
         await loadData();
       }
     } catch {
       setError('Có lỗi xảy ra khi tạo script');
+    } finally {
+      // `generating` PHẢI gỡ ở đây, không rải ở từng nhánh.
+      //
+      // Bản cũ gọi setGenerating(false) ở bốn chỗ — và cả bốn đều là ĐƯỜNG LỖI. Hai
+      // đường thành công `return` thẳng sau `await loadData()` mà không gỡ cờ, nên
+      // script tạo xong, dữ liệu nạp về, mà trang vẫn quay vòng mãi.
+      //
+      // Backend không hề có lỗi: log VPS ghi `[AI] Completed script-composer` sau 22
+      // giây. Người bán nhìn vòng xoay rồi tải lại trang, và dự án đứng lại ở trạng
+      // thái dở dang — đúng cơ chế đã sinh ra 36 dự án treo.
+      //
+      // Cùng một lỗi với cờ `uploading` ở wizard tạo dự án.
       setGenerating(false);
+    }
+  }
+
+  /**
+   * Sửa một trường của một cảnh.
+   *
+   * Ghi thẳng vào `script` trong bộ nhớ để ô nhập phản hồi ngay, và bật cờ `dirty` để
+   * nút Lưu hiện ra. KHÔNG tự lưu mỗi lần gõ: mỗi phím là một lượt ghi cơ sở dữ liệu,
+   * và người bán đang sửa dở một câu thì chưa muốn nó thành thật.
+   */
+  function suaCanh(idx: number, truong: 'overlay_text' | 'voice_line', giaTri: string) {
+    setScript((truoc: any) => {
+      if (!truoc) return truoc;
+      const the = Array.isArray(truoc.scene_cards) ? [...truoc.scene_cards] : [];
+      if (!the[idx]) return truoc;
+      the[idx] = { ...the[idx], [truong]: giaTri };
+      return { ...truoc, scene_cards: the };
+    });
+    setScenesDirty(true);
+  }
+
+  async function handleSaveScenes() {
+    if (!projectId || !script) return;
+    setSavingScenes(true);
+    try {
+      const the = Array.isArray(script.scene_cards) ? script.scene_cards : [];
+      const { error } = await ScriptService.updateSceneCards(projectId, the);
+      if (error) {
+        toast({ title: 'Không lưu được', description: error, variant: 'destructive' });
+        return;
+      }
+      setScenesDirty(false);
+      toast({ title: 'Đã lưu kịch bản', description: 'Video sẽ dựng đúng nội dung này.' });
+    } catch (e: any) {
+      toast({ title: 'Không lưu được', description: e?.message ?? 'Lỗi không rõ', variant: 'destructive' });
+    } finally {
+      setSavingScenes(false);
     }
   }
 
@@ -188,8 +269,70 @@ const ScriptRender = () => {
     setRenderProgress(0);
 
     try {
-      // 1. Create the job on the backend (this enqueues to BullMQ worker)
-      const res = await RenderService.createJob(projectId, mode, script);
+      // Gửi kịch bản dưới dạng SCENE GRAPH, không phải rawInput.
+      //
+      // `createJob(projectId, mode, script)` đặt `script` vào vị trí tham số thứ ba là
+      // `rawInput`. Worker thấy `raw_input` thì chạy TRỌN chuỗi 4 tầng và **viết lại
+      // kịch bản từ đầu** — kịch bản hiện trên trang không phải kịch bản được dựng.
+      //
+      // Đó là gốc rễ của "không kiểm soát được kịch bản": sửa gì trên trang này cũng
+      // bị bỏ qua, và mỗi lần bấm Render lại ra một nội dung khác.
+      //
+      // Truyền qua `sceneGraph` thì worker dùng `sceneCardsToSceneGraph` và BỎ QUA
+      // tầng 1–3, dựng đúng thứ người bán đang nhìn.
+      // Ảnh sản phẩm PHẢI đi kèm.
+      //
+      // Bản cũ gửi `image_urls: []` viết cứng — đúng dòng này. Worker nhận kế hoạch
+      // dựng có sáu cảnh nhưng không một ảnh nào, và ffmpeg sập với
+      // `3221225477` (ACCESS_VIOLATION). Đo thật ngày 29/10: render hỏng có
+      // `raw_input.image_urls: 0 ảnh`, render chạy được có 3.
+      //
+      // Chú thích ngay trên dòng đó còn ghi "rawInput chỉ còn mang ảnh và tỉ lệ" —
+      // ý định đúng, nhưng mảng để rỗng.
+      /**
+       * Đọc ảnh để gửi kèm — nhưng KHÔNG chặn khi đọc không được.
+       *
+       * Bản trước của tôi chặn cứng ở đây: `imageUrls.length === 0` thì báo "Chưa có
+       * ảnh sản phẩm" và dừng. Đó là sai, vì worker VỐN tự truy `project_assets` khi
+       * `image_urls` rỗng (xem `resolveRealImageUrls`), và nó còn ném lỗi rõ ràng
+       * `NO_PRODUCT_IMAGES` khi dự án thật sự không có ảnh.
+       *
+       * Hậu quả của việc chặn: một lần đọc Supabase hỏng — mạng chớp, khoá phiên bận
+       * — biến thành "không render được", và không có một yêu cầu nào tới backend để
+       * lần ra nguyên nhân. Gửi kèm ảnh là tối ưu, không phải điều kiện.
+       */
+      let imageUrls: string[] = [];
+      try {
+        const { assets, error: loiAnh } = await AssetService.getByProject(projectId);
+        imageUrls = assetUrls(assets ?? []);
+        if (loiAnh) console.warn('[Render] Doc anh that bai, de worker tu tra:', loiAnh);
+      } catch (e: any) {
+        console.warn('[Render] Doc anh nem loi, de worker tu tra:', e?.message ?? e);
+      }
+
+      if (imageUrls.length === 0) {
+        console.warn('[Render] Khong doc duoc URL anh o frontend — worker se tu truy CSDL.');
+      }
+
+      const res = await RenderService.createJob(
+        projectId,
+        mode,
+        // rawInput chỉ còn mang ảnh và tỉ lệ; nội dung do scene graph quyết.
+        {
+          image_urls: imageUrls,
+          aspect_ratio: '9:16',
+          product_title: project?.title ?? '',
+          // Giọng đọc khách chọn. Backend nhận cả mã đầy đủ lẫn 'nu'/'nam'.
+          voice: giongDoc,
+          // Hai tuỳ chọn làm sạch — trước đây bị bỏ rơi ở chính dòng này.
+          // Gia tinh theo DON KHACH DAT. Thieu dong nay thi backend lui ve 20 giay.
+          duration_seconds: giayKichBan,
+          no_text_overlay: khongChenChu || undefined,
+          crop_edges: catVienAnh ? 0.08 : undefined,
+        },
+        '9:16',
+        { scene_cards: Array.isArray(script.scene_cards) ? script.scene_cards : [] },
+      );
       if (res.error) {
         throw new Error(res.error);
       }
@@ -204,16 +347,31 @@ const ScriptRender = () => {
       let attempts = 0;
       const pollInterval = setInterval(async () => {
         attempts++;
-        await loadData(); // This updates latestRender state
-        
-        // Inside loadData, if latestRender.status is 'completed' or 'failed', we can clear interval.
-        // We do this by checking the new state in the next render cycle, or by checking the fetch result directly.
+
+        // Hỏi trạng thái TRƯỚC, rồi mới nạp lại — và nạp im lặng.
+        //
+        // Bản cũ gọi `loadData()` (5 lời gọi mạng, kèm bật cờ loading) rồi gọi THÊM
+        // `getLatest` nữa: sáu lượt mạng mỗi 3 giây, và cả trang nhấp nháy theo.
         const { render } = await RenderService.getLatest(projectId);
+        await loadData(true);
         
         if (render) {
           if (render.status === 'processing' || render.status === 'pending') {
             // Fake progress just to show it's working
-            setRenderProgress((prev) => Math.min(prev + 5, 95));
+            // Dùng tiến độ THẬT từ worker, không tự bịa.
+            //
+            // Bản cũ cộng +5 mỗi lần hỏi (3 giây một lần), nên sau 3 vòng nó đứng ở
+            // 15% trong khi worker đã chạy tới 99%. Người bán nhìn con số đó và kết
+            // luận hệ thống treo, rồi tải lại trang hoặc bấm render lần nữa.
+            //
+            // Chỉ cho số TĂNG: worker ghi tiến độ theo từng chặng, và một lần hỏi lỡ
+            // nhịp trả về số cũ sẽ làm thanh tiến độ tụt ngược.
+            const that = Number((render as any).progress);
+            setRenderProgress((prev) =>
+              Number.isFinite(that) && that > 0
+                ? Math.max(prev, Math.min(that, 99))
+                : Math.min(prev + 5, 95)
+            );
           } else if (render.status === 'completed' || render.status === 'failed' || render.status === 'retryable_failed') {
             clearInterval(pollInterval);
             setRendering(false);
@@ -245,7 +403,7 @@ const ScriptRender = () => {
         <ErrorState
           title="Không thể tải script"
           message={error}
-          onRetry={project?.status === 'conceptready' ? handleGenerate : loadData}
+          onRetry={project?.status === 'conceptready' ? () => handleGenerate(project) : loadData}
         />
       </div>
     );
@@ -288,6 +446,22 @@ const ScriptRender = () => {
   }
 
   const sceneCards = Array.isArray(script.scene_cards) ? script.scene_cards : [];
+
+  /**
+   * Thoi luong THAT cua kich ban dang hien tren trang, va gia theo no.
+   *
+   * Trang nay khong cho doi thoi luong: kich ban da duoc viet theo mot do dai cu the,
+   * doi so giay ma khong viet lai loi thoai thi chi ra mot video cung noi dung bi keo
+   * hoac bi cat. Muon do dai khac thi sinh lai kich ban tu dau.
+   *
+   * Nhung PHAI gui dung con so nay xuong backend. Khong gui thi `specFromRequest` lui
+   * ve mac dinh 20 giay, va kich ban 40 giay bi tinh gia cua video 20 giay — bao mot
+   * dang, tru mot dang.
+   */
+  const giayKichBan = Number(script.duration_sec) > 0
+    ? Number(script.duration_sec)
+    : sceneCards.reduce((t: number, c: any) => t + (Number(c?.duration_sec) || 0), 0) || 20;
+  const giaCredit = creditsFor({ durationSec: giayKichBan });
   const overlayList = visualPack?.overlay_list && Array.isArray(visualPack.overlay_list) ? visualPack.overlay_list : [];
   const showPremium = settings.PREMIUMRENDERENABLED && !settings.LOCALONLYMODE;
 
@@ -310,7 +484,7 @@ const ScriptRender = () => {
           <Button size="sm" variant="ghost" onClick={() => navigate(`/projects/${projectId}/concepts`)} className="gap-1.5">
             <ChevronLeft className="h-3.5 w-3.5" /> Concepts
           </Button>
-          <Button size="sm" variant="outline" onClick={handleGenerate} disabled={generating || rendering} className="gap-1.5">
+          <Button size="sm" variant="outline" onClick={() => handleGenerate(project)} disabled={generating || rendering} className="gap-1.5">
             <RefreshCw className="h-3.5 w-3.5" /> Tạo lại
           </Button>
         </div>
@@ -369,7 +543,30 @@ const ScriptRender = () => {
             </TabsContent>
 
             {/* Scenes tab */}
+            {/*
+              Tab Cảnh là chỗ KIỂM SOÁT, không phải chỗ xem.
+
+              Người bán sửa câu chữ trên màn hình và lời đọc của từng cảnh, lưu lại,
+              rồi bấm Render — worker đọc thẳng `scene_cards` này và BỎ QUA tầng 1–3,
+              nên thứ họ sửa đúng là thứ được dựng.
+
+              Trước đây tab này chỉ hiển thị: kịch bản hiện trên trang không phải kịch
+              bản được dựng, vì render gửi cả script vào `rawInput` và worker viết lại
+              từ đầu. Mỗi lần bấm Render ra một nội dung khác.
+            */}
             <TabsContent value="scenes" className="space-y-3 mt-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs text-muted-foreground">
+                  Sửa trực tiếp câu chữ và lời đọc. Video sẽ dựng đúng nội dung bạn để ở đây.
+                </p>
+                {scenesDirty && (
+                  <Button size="sm" onClick={handleSaveScenes} disabled={savingScenes}>
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    {savingScenes ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </Button>
+                )}
+              </div>
+
               {sceneCards.map((scene: any, idx: number) => (
                 <Card key={idx} className="border-border bg-card">
                   <CardContent className="p-4">
@@ -377,29 +574,45 @@ const ScriptRender = () => {
                       <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                         {scene.scene_no || idx + 1}
                       </div>
-                      <div className="flex-1 space-y-2 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" /> {scene.duration_sec}s
-                          </Badge>
-                          {scene.overlay_text && (
-                            <Badge className="text-xs bg-accent/20 text-accent-foreground border-accent/30">
-                              {scene.overlay_text}
-                            </Badge>
-                          )}
+                      <div className="flex-1 space-y-3 min-w-0">
+                        <Badge variant="outline" className="text-xs">
+                          <Clock className="h-3 w-3 mr-1" /> {scene.duration_sec}s
+                        </Badge>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                            Chữ trên màn hình
+                            <span className="ml-1.5 normal-case tracking-normal opacity-70">
+                              — ngắn, 3–6 từ; để trống nếu cảnh này không cần chữ
+                            </span>
+                          </label>
+                          <Input
+                            value={scene.overlay_text ?? ''}
+                            onChange={(e) => suaCanh(idx, 'overlay_text', e.target.value)}
+                            placeholder="(không có chữ)"
+                            className="h-8 text-sm"
+                          />
                         </div>
-                        <div className="space-y-1.5">
-                          <div>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Hình ảnh</span>
-                            <p className="text-sm text-foreground/90">{scene.visual_instruction}</p>
-                          </div>
-                          {scene.voice_line && (
-                            <div>
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Lời nói</span>
-                              <p className="text-sm text-foreground/80 italic">"{scene.voice_line}"</p>
-                            </div>
-                          )}
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                            Lời đọc
+                          </label>
+                          <Textarea
+                            value={scene.voice_line ?? ''}
+                            onChange={(e) => suaCanh(idx, 'voice_line', e.target.value)}
+                            placeholder="(cảnh này không có lời)"
+                            rows={2}
+                            className="text-sm resize-none"
+                          />
                         </div>
+
+                        {scene.visual_instruction && (
+                          <p className="text-[11px] text-muted-foreground">
+                            <span className="uppercase tracking-wide">Hình ảnh:</span>{' '}
+                            {scene.visual_instruction}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -552,6 +765,8 @@ const ScriptRender = () => {
                   {latestRender?.status === 'completed' && latestRender.output_url ? (
                     <video
                       src={latestRender.output_url}
+                      poster={latestRender.thumbnail_url ?? undefined}
+                      preload="metadata"
                       controls
                       playsInline
                       className="absolute inset-0 w-full h-full object-contain"
@@ -593,14 +808,81 @@ const ScriptRender = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Button onClick={() => handleRender('draft_local')} className="gap-2 w-full" size="sm">
-                    <Film className="h-3.5 w-3.5" /> Render Draft
+                <div className="space-y-3">
+                  {/* Tuỳ chọn NẰM CẠNH nút dựng, không ở một bước trước đó.
+                      Trước 30/10 hai ô làm sạch chỉ có ở bước tạo dự án và bị trang
+                      này bỏ rơi — khách tick xong thì chúng biến mất không dấu vết. */}
+                  <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2.5">
+                    <div>
+                      <div className="text-[11px] font-medium text-foreground mb-1.5">Giọng đọc</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {([['nu', 'Giọng nữ'], ['nam', 'Giọng nam']] as const).map(([ma, ten]) => (
+                          <button
+                            key={ma}
+                            type="button"
+                            onClick={() => setGiongDoc(ma)}
+                            className={cn(
+                              'rounded-md border px-2 py-1.5 text-[11px] transition-all',
+                              giongDoc === ma
+                                ? 'border-primary bg-primary/10 text-foreground font-medium'
+                                : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                            )}
+                          >
+                            {ten}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        Chỉ áp dụng cho bản có lồng tiếng.
+                      </div>
+                    </div>
+
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={khongChenChu}
+                        onChange={(e) => setKhongChenChu(e.target.checked)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <span className="text-[11px] leading-tight">
+                        <span className="text-foreground">Không chèn chữ lên video</span>
+                        <span className="block text-muted-foreground">
+                          Bỏ cả tiêu đề lẫn phụ đề, để tự gõ caption trong TikTok.
+                        </span>
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={catVienAnh}
+                        onChange={(e) => setCatVienAnh(e.target.checked)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <span className="text-[11px] leading-tight">
+                        <span className="text-foreground">Cắt viền ảnh để bỏ logo góc</span>
+                        <span className="block text-muted-foreground">
+                          Cắt 8% quanh mép — ảnh có sản phẩm sát mép thì đừng bật.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+
+                  <Button onClick={() => handleRender('draft_local')} className="gap-2 w-full" size="sm" disabled={rendering}>
+                    <Film className="h-3.5 w-3.5" /> Render Draft {khongChenChu ? '' : '+ phụ đề'}
+                    <span className="ml-auto text-[11px] opacity-80">{giaCredit} credit</span>
                   </Button>
-                  {/* Vô hiệu tới khi có TTS thật: backend chưa tích hợp giọng đọc và
-                      render.worker.ts không đọc render_mode, nên bản "Voice" trùng bản Draft. */}
-                  <Button variant="secondary" disabled className="gap-2 w-full" size="sm" title="Sắp có">
+                  {/* Mở lại 28/10: lồng tiếng chạy thật qua FPT, và worker chỉ sinh giọng
+                      cho đúng chế độ draft_local_tts nên bản này không còn trùng bản Draft. */}
+                  <Button
+                    onClick={() => handleRender('draftlocaltts')}
+                    variant="secondary"
+                    disabled={rendering}
+                    className="gap-2 w-full"
+                    size="sm"
+                  >
                     <Play className="h-3.5 w-3.5" /> Draft + Giọng đọc
+                    <span className="ml-auto text-[11px] opacity-80">{giaCredit} credit</span>
                   </Button>
                   {showPremium && (
                     <Button variant="outline" disabled className="gap-2 w-full" size="sm" title="Coming soon">

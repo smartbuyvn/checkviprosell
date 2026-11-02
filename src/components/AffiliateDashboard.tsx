@@ -226,6 +226,12 @@ function StatCard({ label, value, subtext, icon, accentClass = '' }: StatCardPro
  * Form yêu cầu rút. Mọi kiểm tra thật nằm ở backend — phần kiểm ở đây chỉ để
  * báo sớm cho người dùng, không được tin là đủ.
  */
+/**
+ * Định dạng tiền Việt. Để ở phạm vi module chứ không trong component chính:
+ * WithdrawalForm nằm ngoài component đó nên không thấy được biến cục bộ của nó.
+ */
+const fmtVnd = (n: number) => n.toLocaleString('vi-VN') + 'đ';
+
 function WithdrawalForm({
   availableVnd,
   minVnd,
@@ -271,7 +277,7 @@ function WithdrawalForm({
 
     setSending(true);
     try {
-      await affiliateService.requestWithdrawal({
+      await AffiliateService.requestWithdrawal({
         amountVnd: value,
         bank: bank.trim(),
         accountNo: accountNo.trim(),
@@ -356,8 +362,7 @@ export default function AffiliateDashboard() {
     }
   };
 
-  const fmtVnd = (n: number) =>
-    n.toLocaleString('vi-VN') + 'đ';
+  // fmtVnd nay da chuyen len pham vi module de WithdrawalForm dung chung.
 
   /* ──────── Render ──────── */
   return (
@@ -374,6 +379,19 @@ export default function AffiliateDashboard() {
       </div>
 
       {/* ── Tier & Policy info box ── */}
+      {/*
+        Chốt `data?.policy` là thứ bắt buộc, không phải phòng xa.
+
+        Khối này đọc `data.tier` và `data.policy.*`, nhưng nó nằm TRÊN chốt
+        isLoading/hasError ở dưới — nên lần render đầu tiên, khi `data` còn là null,
+        nó nổ `Cannot read properties of null (reading 'tier')`. Không có error
+        boundary nên cả cây React chết theo: trang /affiliate trắng hoàn toàn với
+        MỌI người dùng, kể cả khi API hoàn toàn bình thường.
+
+        Chốt theo `policy` chứ không chỉ `data`: thiếu `policy` thì thà ẩn hộp này
+        còn hơn hiện sai tỉ lệ hoa hồng — đây là con số tiền thật của đối tác.
+      */}
+      {data?.policy && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl p-5">
            <h3 className="font-semibold text-lg text-foreground mb-4">Hạng Đối Tác</h3>
@@ -423,6 +441,7 @@ export default function AffiliateDashboard() {
            </div>
         </div>
       </div>
+      )}
 
       {/* ── Loading / Error / Data ── */}
       {isLoading ? (
@@ -547,7 +566,7 @@ export default function AffiliateDashboard() {
                 hasOpenRequest={(data.withdrawals ?? []).some(
                   (w) => w.status === 'requested' || w.status === 'approved'
                 )}
-                onDone={load}
+                onDone={fetchData}
               />
 
               {(data.withdrawals ?? []).length > 0 && (

@@ -33,13 +33,27 @@ import {
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
+/**
+ * Ảnh demo lấy từ chính video Viprosell dựng ra (public/demo/).
+ *
+ * Đã cắt lấy phần nội dung trong khung điện thoại — bỏ logo cũ ở viền và watermark
+ * của công cụ sinh ảnh. Dùng ảnh tai nghe thì không được: vỏ tai nghe trong bản dựng
+ * đó mang logo V cũ ngay giữa khung.
+ */
+/** Nhãn gói trên thẻ demo → mã gói trong PACKAGES. */
+const BADGE_TO_PACKAGE: Record<string, string> = {
+  'Quick Ads': 'quickads',
+  'Review Video': 'reviewvideo',
+  Conversion: 'conversionvideo',
+};
+
 const DEMO_ITEMS = [
-  { packageBadge: 'Quick Ads', title: 'Son dưỡng môi — Test Ads 15s', hook: '"Đôi môi khô nứt? Thử ngay son dưỡng này!"', duration: '15s' },
-  { packageBadge: 'Quick Ads', title: 'Kem chống nắng — Flash Ad', hook: '"Da bạn đang bị nắng hại mỗi ngày"', duration: '18s' },
-  { packageBadge: 'Review Video', title: 'Serum Vitamin C — Bestie Review', hook: '"Mình dùng 2 tuần, da sáng hẳn!"', duration: '25s' },
-  { packageBadge: 'Review Video', title: 'Áo thun basic — Shop Owner Review', hook: '"Chất cotton mịn, mặc cả ngày không ngán"', duration: '22s' },
-  { packageBadge: 'Conversion', title: 'Máy rửa mặt — Pain-to-Sale', hook: '"Rửa mặt bằng tay = 70% bụi bẩn còn lại"', duration: '28s' },
-  { packageBadge: 'Conversion', title: 'Bộ chăm sóc da — Offer CTA', hook: '"Giảm 40% chỉ hôm nay — combo 3 bước"', duration: '25s' },
+  { image: '/demo/demo-1.webp', packageBadge: 'Quick Ads', title: 'Son dưỡng môi — Test Ads 15s', hook: '"Đôi môi khô nứt? Thử ngay son dưỡng này!"', duration: '15s' },
+  { image: '/demo/demo-2.webp', packageBadge: 'Quick Ads', title: 'Kem chống nắng — Flash Ad', hook: '"Da bạn đang bị nắng hại mỗi ngày"', duration: '18s' },
+  { image: '/demo/demo-3.webp', packageBadge: 'Review Video', title: 'Serum Vitamin C — Bestie Review', hook: '"Mình dùng 2 tuần, da sáng hẳn!"', duration: '25s' },
+  { image: '/demo/demo-4.webp', packageBadge: 'Review Video', title: 'Áo thun basic — Shop Owner Review', hook: '"Chất cotton mịn, mặc cả ngày không ngán"', duration: '22s' },
+  { image: '/demo/demo-5.webp', packageBadge: 'Conversion', title: 'Máy rửa mặt — Pain-to-Sale', hook: '"Rửa mặt bằng tay = 70% bụi bẩn còn lại"', duration: '28s' },
+  { image: '/demo/demo-6.webp', packageBadge: 'Conversion', title: 'Bộ chăm sóc da — Offer CTA', hook: '"Giảm 40% chỉ hôm nay — combo 3 bước"', duration: '25s' },
 ];
 
 const FAQ_ITEMS = [
@@ -64,14 +78,14 @@ const Landing = () => {
   // Van giu danh sach du phong vi trang chu truoc gio khong goi API nao va van hien
   // duoc khi backend chet. Mat tinh chat do de doi lay tinh nhat quan la khong dang.
   const FALLBACK_PLANS: PlanPackage[] = [
-    { id: 'free', name: 'Free', price: 'Miễn phí', credits: 5,
-      features: ['5 credits dùng thử', 'Render bản nháp', '3 loại video', 'Overlay chữ'], popular: false },
-    { id: 'pro', name: 'Pro', price: '130.000₫', credits: 50,
-      features: ['50 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ qua email'], popular: false },
-    { id: 'business', name: 'Business', price: '250.000₫', credits: 110,
-      features: ['110 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: true },
-    { id: 'premium', name: 'Premium', price: '520.000₫', credits: 240,
-      features: ['240 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: false },
+    { id: 'free', name: 'Free', price: 'Miễn phí', credits: 3,
+      features: ['3 credits dùng thử', 'Video có watermark', 'Độ phân giải 720p', 'Render bản nháp'], popular: false },
+    { id: 'starter', name: 'Starter', price: '129.000₫', credits: 30,
+      features: ['30 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ qua email'], popular: false },
+    { id: 'pro', name: 'Pro', price: '249.000₫', credits: 80,
+      features: ['80 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: true },
+    { id: 'business', name: 'Business', price: '499.000₫', credits: 180,
+      features: ['180 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'], popular: false },
   ];
 
   const [plans, setPlans] = useState<PlanPackage[]>(FALLBACK_PLANS);
@@ -89,6 +103,42 @@ const Landing = () => {
       alive = false;
     };
   }, []);
+
+  /**
+   * Đưa người bán vào wizard với gói đã chọn sẵn.
+   *
+   * Chưa đăng nhập thì sang trang đăng ký, nhưng GIỮ gói trong `returnUrl` — bắt họ
+   * đăng ký rồi về trang chủ chọn lại gói là mất đúng cái họ vừa quyết.
+   *
+   * Trước đây nút "Bắt đầu" trên thẻ gói và cả thẻ demo đều không gắn gì: thẻ có
+   * `cursor-pointer` và nút Play nên trông bấm được, bấm thì không có chuyện gì xảy ra.
+   */
+  /**
+   * Cuộn tới neo khi vào trang kèm hash (ví dụ bấm "Demo" từ trang /terms).
+   *
+   * React Router chỉ đổi URL, không tự cuộn. Thiếu khối này thì người dùng về trang
+   * chủ và đứng ở đầu trang, tưởng menu hỏng.
+   *
+   * Hoãn một nhịp vì các section bên dưới dùng `whileInView` của framer-motion: cuộn
+   * ngay khi mount thì phần tử đích chưa có chiều cao thật, và trang nhảy sai chỗ.
+   */
+  useEffect(() => {
+    if (!window.location.hash) return;
+    const id = window.location.hash;
+    const t = setTimeout(() => {
+      document.querySelector(id)?.scrollIntoView({ behavior: 'smooth' });
+    }, 120);
+    return () => clearTimeout(t);
+  }, []);
+
+  const goToPackage = (packageId: string) => {
+    const dich = `${ROUTES.NEW_PROJECT}?package=${packageId}`;
+    if (isAuthenticated) {
+      navigate(dich);
+    } else {
+      navigate(`${ROUTES.SIGNUP}?returnUrl=${encodeURIComponent(dich)}`);
+    }
+  };
 
   const handlePlanSelect = (planCode: string) => {
     if (isAuthenticated) {
@@ -169,6 +219,7 @@ const Landing = () => {
           />
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             <PackageCard
+              onCta={() => goToPackage('quickads')}
               name="Quick Ads"
               tagline="Video test nhanh"
               useCase="Tạo video quảng cáo 15–20s để test sản phẩm trên TikTok Ads, Reels Ads."
@@ -176,6 +227,7 @@ const Landing = () => {
               benefits={['Hook mạnh', '1–2 USP', 'CTA rõ', 'Test nhanh']}
             />
             <PackageCard
+              onCta={() => goToPackage('reviewvideo')}
               name="Review Video"
               tagline="Video review tăng trust"
               useCase="Video review phong cách KOC / bestie / chủ shop, tăng niềm tin để khách mua."
@@ -184,6 +236,7 @@ const Landing = () => {
               featured
             />
             <PackageCard
+              onCta={() => goToPackage('conversionvideo')}
               name="Conversion Video"
               tagline="Video chốt đơn"
               useCase="Video tối ưu chuyển đổi: pain → proof → offer → urgency → CTA trực tiếp."
@@ -205,7 +258,7 @@ const Landing = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 max-w-5xl mx-auto">
             {DEMO_ITEMS.map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                <DemoThumbnail {...item} />
+                <DemoThumbnail {...item} onOpen={() => goToPackage(BADGE_TO_PACKAGE[item.packageBadge])} />
               </motion.div>
             ))}
           </div>

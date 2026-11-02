@@ -72,19 +72,29 @@ export function PublicHeader({ variant = 'transparent' }: PublicHeaderProps) {
   }, [mobileOpen]);
 
 
-  /** * [FIXED] Handle anchor-based scroll navigation (/#features, /#demo, etc.) 
+  /**
+   * Menu neo (/#features, /#demo…): đang ở trang chủ thì cuộn, ở trang khác thì về
+   * trang chủ rồi cuộn.
+   *
+   * Bản cũ làm `navigate('/' + href)` trong khi `href` ĐÃ là `/#features` — ra
+   * `//#features`, và menu trên đầu không hoạt động ở bất kỳ trang nào không phải
+   * trang chủ.
+   *
+   * Sửa dấu gạch thừa thôi vẫn chưa đủ: React Router chỉ đổi URL chứ không tự cuộn
+   * tới neo khi chuyển trang. Phần cuộn do Landing lo khi nó gắn vào DOM.
    */
   const handleHashNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setMobileOpen(false);
 
+    const hash = href.slice(href.indexOf('#'));
+
     if (window.location.pathname === '/') {
-      // Nếu đang ở trang chủ, trượt mượt xuống section
-      const el = document.querySelector(href.replace('/', ''));
-      el?.scrollIntoView({ behavior: 'smooth' });
+      document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+      // Cập nhật thanh địa chỉ để người dùng chép link được, nhưng không nạp lại trang.
+      window.history.replaceState(null, '', hash);
     } else {
-      // Nếu đang ở trang khác (vd: /terms), chuyển hướng thẳng về trang chủ kèm theo hash
-      navigate('/' + href);
+      navigate('/' + hash);
     }
   };
 

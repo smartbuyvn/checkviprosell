@@ -1,14 +1,30 @@
 ﻿/**
  * Viprosell — Demo Thumbnail Card
  *
- * Khung 9:16 dựng lại bố cục của video đầu ra: vùng ảnh sản phẩm, overlay text
- * (hook) và thanh phụ đề cháy sẵn. Cố tình dùng đồ hoạ thay vì ảnh sản phẩm thật
- * — section này minh hoạ *bố cục* đầu ra, bịa ảnh sản phẩm sẽ thành quảng cáo sai.
+ * Khung 9:16 dựng lại bố cục của video đầu ra: ảnh sản phẩm, overlay text (hook) và
+ * thanh phụ đề cháy sẵn.
+ *
+ * Trước đây dùng gradient thay ảnh, với lý do "bịa ảnh sản phẩm sẽ thành quảng cáo
+ * sai". Lý do đó đúng khi chưa có gì để đưa lên — nhưng nay ảnh là khung lấy từ chính
+ * video Viprosell dựng ra, nên không còn là bịa.
+ *
+ * Ảnh đã cắt lấy phần nội dung trong khung điện thoại, bỏ logo cũ ở viền và watermark
+ * của công cụ sinh ảnh. WebP 300×534, mỗi tấm 15–27 KB, cả sáu 119 KB — ô chỉ hiển thị
+ * ở 124×220 nên kích thước này đã dư cho màn hình retina.
  */
 import { Play, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DemoThumbnailProps {
+  /** Ảnh nền 9:16. Thiếu thì thẻ lui về gradient theo gói. */
+  image?: string;
+  /**
+   * Bấm vào thẻ thì đi đâu.
+   *
+   * Thẻ có `cursor-pointer` và một nút Play ở giữa, nên nó HỨA là bấm được. Trước đây
+   * không có handler nào — người xem bấm rồi không hiểu vì sao không có gì xảy ra.
+   */
+  onOpen?: () => void;
   packageBadge: string;
   title: string;
   hook: string;
@@ -45,32 +61,57 @@ function stripQuotes(text: string): string {
   return text.replace(/^["'“‘]+/, '').replace(/["'”’]+$/, '');
 }
 
-export function DemoThumbnail({ packageBadge, title, hook, duration, className }: DemoThumbnailProps) {
+export function DemoThumbnail({ image, onOpen, packageBadge, title, hook, duration, className }: DemoThumbnailProps) {
   const accent = ACCENTS[packageBadge] ?? FALLBACK_ACCENT;
   const overlay = stripQuotes(hook);
 
   return (
     <div
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } } : undefined}
+      aria-label={onOpen ? `Tạo video ${packageBadge}: ${title}` : undefined}
       className={cn(
-        'group relative rounded-xl overflow-hidden bg-surface shadow-card hover:shadow-card-hover transition-all duration-300 cursor-pointer hover:translate-y-[-2px]',
+        'group relative rounded-xl overflow-hidden bg-surface shadow-card hover:shadow-card-hover transition-all duration-300 hover:translate-y-[-2px]',
+        // Chỉ hiện con trỏ bàn tay khi thật sự bấm được. Hứa bằng con trỏ rồi không
+        // làm gì là cách nhanh nhất để người dùng kết luận trang bị hỏng.
+        onOpen ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary' : '',
         className
       )}
     >
       {/* ─── Khung video 9:16 ─── */}
       <div className={cn('aspect-[9/16] max-h-[220px] relative overflow-hidden', accent.field)}>
-        {/* Nguồn sáng + khối chủ thể: gợi ý vùng đặt ảnh sản phẩm, không phải ảnh thật */}
-        <div className={cn('absolute -top-6 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full blur-2xl', accent.glow)} />
-        <div
-          className={cn(
-            'absolute left-1/2 -translate-x-1/2 top-[22%] w-[42%] h-[34%] rounded-[1.1rem] blur-[1px]',
-            'shadow-lg transition-transform duration-500 group-hover:scale-105',
-            accent.subject
-          )}
-        />
-        <div className="absolute left-1/2 -translate-x-1/2 top-[53%] w-[30%] h-2 rounded-full bg-background/25 blur-md" />
+        {image ? (
+          <img
+            src={image}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          /* Đường lui khi thiếu ảnh: gợi ý vùng đặt sản phẩm bằng đồ hoạ. */
+          <>
+            <div className={cn('absolute -top-6 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full blur-2xl', accent.glow)} />
+            <div
+              className={cn(
+                'absolute left-1/2 -translate-x-1/2 top-[22%] w-[42%] h-[34%] rounded-[1.1rem] blur-[1px]',
+                'shadow-lg transition-transform duration-500 group-hover:scale-105',
+                accent.subject
+              )}
+            />
+            <div className="absolute left-1/2 -translate-x-1/2 top-[53%] w-[30%] h-2 rounded-full bg-background/25 blur-md" />
+          </>
+        )}
 
         {/* Scrim để chữ overlay luôn đọc được, giống video thật */}
-        <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-background via-background/80 to-transparent" />
+        <div className={cn(
+          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-background to-transparent',
+          // Trên ảnh thật, nền phải đậm hơn: ảnh sản phẩm hay có vùng sáng ngay chỗ
+          // đặt chữ, và chữ trắng trên nền sáng là không đọc được.
+          image ? 'h-[55%] via-background/90' : 'h-[62%] via-background/80'
+        )} />
 
         {/* Overlay text — đúng vai trò hook trên video */}
         <div className="absolute inset-x-0 bottom-0 px-2 pb-2">

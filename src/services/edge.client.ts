@@ -5,6 +5,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionSafe } from '@/lib/errorUtils';
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
 export interface EdgeResponse<T = any> {
   data: T | null;
@@ -22,9 +23,10 @@ export async function callEdgeFunction<T = any>(
   const session = await getSessionSafe(supabase);
   if (!session) return { data: null, error: 'Chưa đăng nhập' };
 
-  const resp = await fetch(
+  const resp = await fetchWithTimeout(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`,
     {
+      timeout: 30000,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

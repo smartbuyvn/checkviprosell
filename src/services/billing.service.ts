@@ -22,7 +22,16 @@ const API_BASE = API_ROOT; // Backend routes already mounted at /api/v1/billing
 
 /* ──────────────────────── Types ──────────────────────── */
 
-export type PlanCode = 'free' | 'pro' | 'business' | 'premium';
+/**
+ * Mã gói. Giữ khớp với bảng `plans` trong CSDL — nguồn sự thật là migration
+ * 20261028000003_bang_gia_moi.sql.
+ *
+ * `starter` thêm ngày 28/10 cùng bảng giá mới; thiếu nó ở đây thì trang chủ không
+ * biên dịch được danh sách gói dự phòng. `premium` vẫn giữ trong kiểu dù đã tắt bán
+ * (is_active = false): khách mua trước đây vẫn có giao dịch mang mã đó, và đối soát
+ * lịch sử thanh toán vẫn phải đọc được.
+ */
+export type PlanCode = 'free' | 'starter' | 'pro' | 'business' | 'premium';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface PlanPackage {

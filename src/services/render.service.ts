@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { currentUserId } from '@/lib/currentUser';
 import { getSessionSafe } from '@/lib/errorUtils';
 import { renderLocalDraft, type LocalRenderConfig, type LegacyRenderConfig, type RenderResult } from '@/engine/renderEngine';
 import { fetchWithTimeout } from '@/lib/fetchUtils';
@@ -24,6 +25,8 @@ export interface RenderJob {
   render_mode: string;
   status: string;
   output_url: string | null;
+  /** Anh dai dien do render.worker.ts trich ra sau khi dung xong. Null neu chua co. */
+  thumbnail_url: string | null;
   error_code: string | null;
   error_message: string | null;
   last_fail_reason: string | null;
@@ -32,9 +35,134 @@ export interface RenderJob {
   updated_at: string;
 }
 
+/** Mot phuong an tiep can khach co the chon truoc khi dung video. */
+export interface PhuongAn {
+  gocTiepCan: 'painfirst' | 'reviewtrust' | 'offerconversion';
+  hook: string;
+  gocNhin: string;
+  cta: string;
+  /** Nguyen van phuong an. Gui lai luc dung de hook khong bi sinh lai khac di. */
+  nguyenVan: unknown;
+}
+
+export interface KetQuaPhuongAn {
+  hieuDuoc: {
+    ten: string;
+    moTa: string | null;
+    loiIch: string[];
+    soAnhDocDuoc: number;
+    soAnhTaiLen: number;
+  };
+  phuongAn: PhuongAn[];
+  /** Nhung thu KHACH sua duoc, khong phai thuat ngu noi bo. */
+  canSua: string[];
+}
+
+/** Một dấu bản quyền tìm được, kèm ảnh nhỏ để khách nhìn mà quyết định. */
+export interface DauUngVien {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Chữ đọc được — chỉ để khách nhận ra, có thể sai chính tả. */
+  text: string;
+  /** Số ảnh thấy dấu này. Càng nhiều càng chắc là dấu. */
+  soAnh: number;
+  anh: number[];
+  anhNho: string | null;
+}
+
+export interface KetQuaTimDau {
+  batDuoc: boolean;
+  dau: DauUngVien[];
+  soAnhDaQuet: number;
+  /** Phần diện tích ảnh còn lại nếu khách chọn hết, 0..1. */
+  giuLaiNeuChonHet: number;
+  nhan: string;
+}
+
 export const RenderService = {
+  /**
+   * Lay cac phuong an tiep can de khach CHON truoc khi dung video.
+   *
+   * Khong tru credit: day la xem truoc, chua dung gi. Chay tang 1 + 2 nen mat vai
+   * giay — timeout phai rong hon han cac route khac.
+   */
+  /**
+   * Tìm dấu bản quyền trên ảnh của dự án.
+   *
+   * Trả về ỨNG VIÊN để khách tích, không phải quyết định. Đo ngày 31/10 trên 10 dự
+   * án thật: bộ dò tìm đúng dấu trên 2, loại sạch chữ sản phẩm trên 6, nhưng vẫn cho
+   * dương tính giả trên 2 — chữ in trên vỏ hộp và rác OCR.
+   *
+   * Hỏng thì trả danh sách rỗng chứ không ném lỗi: không dò được dấu là mất một tiện
+   * ích, không phải mất cả video.
+   */
+  async timDau(projectId: string): Promise<KetQuaTimDau> {
+    const rong: KetQuaTimDau = { batDuoc: false, dau: [], soAnhDaQuet: 0, giuLaiNeuChonHet: 1, nhan: '' };
+    const auth = await getAuthHeader();
+    if (!auth) return rong;
+    try {
+      const resp = await fetchWithTimeout(`${API_BASE}/render/tim-dau`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ projectId }),
+        // Mỗi ảnh tốn ~3 giây, tối đa 6 ảnh.
+        timeout: 60000,
+      });
+      const data = await resp.json();
+      if (!resp.ok) return rong;
+      return {
+        batDuoc: Boolean(data?.batDuoc),
+        dau: Array.isArray(data?.dau) ? data.dau : [],
+        soAnhDaQuet: Number(data?.soAnhDaQuet) || 0,
+        giuLaiNeuChonHet: Number(data?.giuLaiNeuChonHet) || 1,
+        nhan: String(data?.nhan ?? ''),
+      };
+    } catch {
+      return rong;
+    }
+  },
+
+  async layPhuongAn(
+    projectId: string,
+    rawInput: any
+  ): Promise<{ data: KetQuaPhuongAn | null; error: string | null }> {
+    const auth = await getAuthHeader();
+    if (!auth) return { data: null, error: 'Chưa đăng nhập' };
+    try {
+      const resp = await fetchWithTimeout(`${API_BASE}/render/phuong-an`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ projectId, rawInput }),
+        timeout: 90000,
+      });
+      const data = await resp.json();
+      if (!resp.ok) return { data: null, error: data?.error || 'Không lấy được phương án' };
+      return { data: data as KetQuaPhuongAn, error: null };
+    } catch (err: any) {
+      return { data: null, error: err.message };
+    }
+  },
+
   /** Create a render job via Fastify backend (enqueues BullMQ job) */
-  async createJob(projectId: string, renderMode: RenderMode = 'draft_local', sceneGraph: any = null) {
+  /**
+   * Tạo job render.
+   *
+   * @param rawInput Dữ liệu sản phẩm để chạy CẢ 4 TẦNG AI. Trước đây nó bị truyền
+   *                 vào tham số sceneGraph, nên worker tưởng đã có đồ thị cảnh sẵn
+   *                 và bỏ qua tầng 1-2-3: video ra không có lời đọc, chữ overlay là
+   *                 tên gói, các cảnh giống hệt nhau.
+   * @param aspect   Tỉ lệ khách chọn. Trước đây viết cứng '9:16' nên lựa chọn của
+   *                 khách bị vứt đi.
+   */
+async createJob(
+    projectId: string,
+    renderMode: RenderMode = 'draft_local',
+    rawInput: any = null,
+    aspect: string = '9:16',
+    sceneGraph: any = null
+  ) {
     const auth = await getAuthHeader();
     if (!auth) return { data: null, error: 'Chưa đăng nhập' };
     try {
@@ -43,9 +171,10 @@ export const RenderService = {
         headers: { 'Content-Type': 'application/json', Authorization: auth },
         body: JSON.stringify({
           projectId,
-          mode: renderMode,       // backend expects 'mode' not 'render_mode'
-          aspect: '9:16',        // backend expects 'aspect' not 'aspect_ratio'
-          sceneGraph: sceneGraph,
+          mode: renderMode,   // backend doc 'mode', khong phai 'render_mode'
+          aspect,             // backend doc 'aspect', khong phai 'aspect_ratio'
+          rawInput,           // duong chay ca 4 tang
+          sceneGraph,         // chi co khi da sinh kich ban truoc
         }),
         timeout: 15000,
       });
@@ -104,11 +233,21 @@ export const RenderService = {
     return { render: data as RenderJob | null, error: error?.message ?? null };
   },
 
-  /** Get count of completed renders across all user projects + latest date */
+  /**
+   * Số video đã dựng xong của CHÍNH người đang đăng nhập, kèm ngày gần nhất.
+   *
+   * `renders` không có cột user_id nên phải lọc bắc cầu qua projects. Dùng
+   * `projects!inner` để hàng nào không khớp chủ sở hữu thì bị loại hẳn khỏi kết quả,
+   * chứ không trả về với projects = null.
+   */
   async getCompletedCount(): Promise<{ count: number; latestDate: string | null }> {
+    const uid = await currentUserId();
+    if (!uid) return { count: 0, latestDate: null };
+
     const { data, error } = await supabase
       .from('renders')
-      .select('id, created_at')
+      .select('id, created_at, projects!inner(user_id)')
+      .eq('projects.user_id', uid as never)
       .eq('status', 'completed')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
@@ -172,8 +311,8 @@ export const RenderService = {
     onProgress?.(88);
 
     // Step 4: Upload to storage
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const uid = await currentUserId();
+    if (!uid) {
       await this.updateStatus(renderId, projectId, 'failed', {
         error_code: 'AUTH_LOST',
         error_message: 'Phiên đăng nhập đã hết',
@@ -181,7 +320,7 @@ export const RenderService = {
       return { success: false, error: 'Phiên đăng nhập đã hết' };
     }
 
-    const fileName = `${user.id}/${projectId}/render_${renderId}.webm`;
+    const fileName = `${uid}/${projectId}/render_${renderId}.webm`;
     const { error: uploadError } = await supabase.storage
       .from('project-assets')
       .upload(fileName, result.blob, { contentType: 'video/webm', upsert: true });

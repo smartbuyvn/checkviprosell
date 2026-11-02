@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchWithTimeout } from '@/lib/fetchUtils';
 
 interface RenderJobStatusProps {
   jobId: string;
@@ -10,7 +11,6 @@ interface RenderJobStatusProps {
 }
 
 export const RenderJobStatus: React.FC<RenderJobStatusProps> = ({ jobId, onCompleted }) => {
-  const { session } = useAuth();
   const [status, setStatus] = useState<string>('pending');
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +22,16 @@ export const RenderJobStatus: React.FC<RenderJobStatusProps> = ({ jobId, onCompl
     const interval = setInterval(async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
-        const res = await fetch(`${API_BASE}/quick-ads/status/${jobId}`, {
+        // Lấy token ngay lúc gửi: useAuth() KHÔNG có trường session, nên cách cũ
+        // `const { session } = useAuth()` luôn cho undefined và header gửi đi là
+        // "Bearer undefined" — backend từ chối 401, tính năng không chạy được bao giờ.
+        // getSession() còn tự làm mới token sắp hết hạn, điều mà biến lưu sẵn không làm được.
+        const { data: { session } } = await supabase.auth.getSession();
+        // Lenh hoi trang thai, goi lai dinh ky — han cho phai ngan.
+        const res = await fetchWithTimeout(`${API_BASE}/quick-ads/status/${jobId}`, {
+          timeout: 8000,
           headers: {
-            'Authorization': `Bearer ${session?.access_token}`
+            'Authorization': `Bearer ${session?.access_token ?? ''}`
           }
         });
         
@@ -50,7 +57,9 @@ export const RenderJobStatus: React.FC<RenderJobStatusProps> = ({ jobId, onCompl
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [jobId, status, session, onCompleted]);
+    // Bỏ `session` khỏi danh sách phụ thuộc: nó không còn là biến ngoài nữa,
+    // token được lấy mới ở mỗi lần gọi bên trong.
+  }, [jobId, status, onCompleted]);
 
   return (
     <Card className="w-full bg-slate-900 border-slate-800 text-white mt-4">

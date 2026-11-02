@@ -74,58 +74,69 @@ const ConceptSelection = () => {
 
   const generateConcepts = useCallback(async () => {
     if (!projectId) return;
-    setStatus('loading');
-    setErrorMsg(null);
-    setErrorDetails([]);
+    try {
+      setStatus('loading');
+      setErrorMsg(null);
+      setErrorDetails([]);
 
-    const result = await ConceptService.generate(projectId);
+      const result = await ConceptService.generate(projectId);
 
-    if (result.error) {
-      setStatus('failed');
-      setErrorMsg(result.error);
-      setErrorDetails(result.details || []);
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.jobId) {
-      let attempts = 0;
-      const maxAttempts = 45; // 90 seconds (45 * 2s)
-
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-
-        // 1. Check if data is ready in DB
-        const { concepts: existing } = await ConceptService.getByProject(projectId);
-        if (existing && existing.length > 0) {
-          setConcepts(existing);
-          const sel = existing.find((c) => c.is_selected);
-          if (sel) setSelectedId(sel.id);
-          else setSelectedId(null);
-          setStatus('success');
-          toast.success('Đã sinh 3 concept bán hàng!');
-          return;
-        }
-
-        // 2. Check job status for failure
-        const jobStatus = await ConceptService.pollJobStatus(result.jobId);
-        if (jobStatus.status === 'failed') {
-          setStatus('failed');
-          setErrorMsg(jobStatus.error || 'AI Worker xử lý thất bại');
-          toast.error('AI Worker xử lý thất bại');
-          return;
-        }
+      if (result.error) {
+        setStatus('failed');
+        setErrorMsg(result.error);
+        setErrorDetails(result.details || []);
+        toast.error(result.error);
+        return;
       }
 
+      if (result.jobId) {
+        let attempts = 0;
+        const maxAttempts = 45; // 90 seconds (45 * 2s)
+
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
+
+          // 1. Check if data is ready in DB
+          const { concepts: existing } = await ConceptService.getByProject(projectId);
+          if (existing && existing.length > 0) {
+            setConcepts(existing);
+            const sel = existing.find((c) => c.is_selected);
+            if (sel) setSelectedId(sel.id);
+            else setSelectedId(null);
+            setStatus('success');
+            toast.success('Đã sinh 3 concept bán hàng!');
+            return;
+          }
+
+          // 2. Check job status for failure
+          const jobStatus = await ConceptService.pollJobStatus(result.jobId);
+          if (jobStatus.status === 'failed') {
+            setStatus('failed');
+            setErrorMsg(jobStatus.error || 'AI Worker xử lý thất bại');
+            toast.error('AI Worker xử lý thất bại');
+            return;
+          }
+        }
+
+        setStatus('failed');
+        setErrorMsg('Hệ thống bị quá tải hoặc phản hồi chậm (Timeout). Vui lòng tải lại trang hoặc thử lại sau.');
+        toast.error('Quá thời gian chờ AI xử lý');
+      } else if (result.concepts && result.concepts.length > 0) {
+        setConcepts(result.concepts);
+        setSelectedId(null);
+        setStatus('success');
+        toast.success('Đã sinh 3 concept bán hàng!');
+      }
+    } catch (e: any) {
+      // Lưới an toàn cuối cùng: trang này không có try/catch nào khác.
+      //
+      // Một lỗi bất ngờ ở bất kỳ đâu trong luồng bất đồng bộ sẽ để `status` kẹt ở
+      // 'loading' vĩnh viễn — người bán chỉ thấy vòng xoay, không thông báo, không nút
+      // thử lại, và dự án nằm lại ở trạng thái dở dang. Đó là cơ chế đã sinh ra 36 dự
+      // án treo trong cơ sở dữ liệu.
       setStatus('failed');
-      setErrorMsg('Hệ thống bị quá tải hoặc phản hồi chậm (Timeout). Vui lòng tải lại trang hoặc thử lại sau.');
-      toast.error('Quá thời gian chờ AI xử lý');
-    } else if (result.concepts && result.concepts.length > 0) {
-      setConcepts(result.concepts);
-      setSelectedId(null);
-      setStatus('success');
-      toast.success('Đã sinh 3 concept bán hàng!');
+      setErrorMsg(e?.message || 'Có lỗi không mong đợi. Tải lại trang rồi thử lại.');
     }
   }, [projectId]);
 
@@ -141,15 +152,22 @@ const ConceptSelection = () => {
   const handleSelect = async (conceptId: string) => {
     if (!projectId || selecting) return;
     setSelecting(true);
-    const { error } = await ConceptService.select(projectId, conceptId);
-    if (error) {
-      toast.error('Không thể chọn concept');
-    } else {
-      setSelectedId(conceptId);
-      setConcepts((prev) => prev.map((c) => ({ ...c, is_selected: c.id === conceptId })));
-      toast.success('Đã chọn concept!');
+    try {
+      const { error } = await ConceptService.select(projectId, conceptId);
+      if (error) {
+        toast.error('Không thể chọn concept');
+      } else {
+        setSelectedId(conceptId);
+        setConcepts((prev) => prev.map((c) => ({ ...c, is_selected: c.id === conceptId })));
+        toast.success('Đã chọn concept!');
+      }
+    } catch {
+      toast.error('Không thể chọn concept — thử lại giúp tôi');
+    } finally {
+      // Thiếu `finally` thì một lỗi bất ngờ khoá nút chọn vĩnh viễn, và người bán
+      // không đi tiếp được bước nào.
+      setSelecting(false);
     }
-    setSelecting(false);
   };
 
   if (!projectId) return <ErrorState message="Thiếu project ID" />;

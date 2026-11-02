@@ -550,6 +550,7 @@ export type Database = {
           provider: string | null
           render_mode: Database["public"]["Enums"]["render_mode"]
           status: Database["public"]["Enums"]["render_status"]
+          thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
@@ -564,6 +565,7 @@ export type Database = {
           provider?: string | null
           render_mode?: Database["public"]["Enums"]["render_mode"]
           status?: Database["public"]["Enums"]["render_status"]
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -578,6 +580,7 @@ export type Database = {
           provider?: string | null
           render_mode?: Database["public"]["Enums"]["render_mode"]
           status?: Database["public"]["Enums"]["render_status"]
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: [
