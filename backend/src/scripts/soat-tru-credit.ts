@@ -76,6 +76,39 @@ async function main() {
   const tong = (tat ?? []).reduce((t: number, x: any) => t + (x.delta ?? 0), 0);
   console.log(`\nTong so cai: ${(tat ?? []).length} dong, tong delta = ${tong}`);
 
+  /**
+   * ── 6. Phép thử `thu-tru-credit.ts --ghi` có để lại rác không ──
+   *
+   * Script đó tự dọn trong khối `finally`, nên chạy xong thành công thì không còn dấu
+   * vết nào — nghĩa là KHÔNG phân biệt được "đã chạy và dọn sạch" với "chưa chạy". Điều
+   * phân biệt được, và là điều đáng lo, là nó có bỏ sót dòng nào trên một tài khoản thật.
+   */
+  console.log('\n── Rac con lai tu phep thu (neu co) ──');
+
+  const { data: racSo } = await db.from('credit_ledger')
+    .select('id, user_id, delta, reason, created_at')
+    .or('reason.like.thu_nghiem%,reason.like.thu_hoan_tien%,reason.like.thu_ghi_trung%,reason.like.thu_sai%,reason.like.thu_chi_doc%');
+  kiem('khong but toan thu nao con lai', (racSo ?? []).length === 0, `thay ${(racSo ?? []).length} dong`);
+  for (const x of racSo ?? []) {
+    console.log(`     ${(x as any).user_id} delta=${(x as any).delta} reason=${(x as any).reason} ${String((x as any).created_at).slice(0, 19)}`);
+  }
+
+  const { data: racNk } = await db.from('usage_logs')
+    .select('id, user_id, meta')
+    .eq('step_name', 'render_credit_deduction');
+  const nkRac = (racNk ?? []).filter((x: any) => String(x?.meta?.reason ?? '').startsWith('thu_'));
+  kiem('khong nhat ky thu nao con lai', nkRac.length === 0, `thay ${nkRac.length} dong`);
+
+  // Tai khoan duoc dinh dung de thu: phai dung 4 but toan san co va so du 0.
+  const USER_THU = '45d13f71-7764-4fb8-b193-a33e856f3364';
+  const { data: cuaThu } = await db.from('credit_ledger').select('delta').eq('user_id', USER_THU);
+  const soDuThu = (cuaThu ?? []).reduce((t: number, x: any) => t + (x.delta ?? 0), 0);
+  kiem(
+    'tai khoan dung de thu con nguyen 4 but toan, so du 0',
+    (cuaThu ?? []).length === 4 && soDuThu === 0,
+    `thuc te ${(cuaThu ?? []).length} dong, so du ${soDuThu}`,
+  );
+
   console.log(`\n${soDat} dat, ${soHong} hong`);
   if (soHong > 0) process.exitCode = 1;
 }
