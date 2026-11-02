@@ -3,9 +3,11 @@
  * Enforced between tiers so the render worker only receives validated render plans.
  */
 import type { Tier1Brief } from './tiers/tier1-brief';
+import { chamHook, type NguonSuThat } from '../lib/hook-quality';
 import type { Tier2Strategy } from './tiers/tier2-strategy';
 import type { Tier3SceneGraph } from './tiers/tier3-scene-graph';
 import type { Tier4RenderPlan } from './tiers/tier4-render-plan';
+import { SUPPORTED_CAMERA_NAMES } from '../lib/camera-moves';
 
 const SUPPORTED_CODECS = new Set(['h264_nvenc', 'libx264']);
 const MAX_OVERLAY_CHARS = 40;
@@ -29,9 +31,27 @@ export function validateBriefTier(brief: Tier1Brief): TierValidationResult {
   return { valid: errors.length === 0, errors, warnings };
 }
 
-export function validateStrategyTier(strategy: Tier2Strategy): TierValidationResult {
+/**
+ * `brief` la tuy chon de khong lam vo cac cho goi cu. Khong co brief thi khong cham
+ * duoc do cu the cua hook — va bo qua im lang con hon chan nham.
+ */
+export function validateStrategyTier(
+  strategy: Tier2Strategy,
+  brief?: NguonSuThat | null
+): TierValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  // Do cu the cua hook: canh bao, KHONG phai loi.
+  //
+  // Chan ca lan render vi mot cau hook do la doi lay mot that bai chac chan de tranh
+  // mot ket qua kem — khach mat ca video. Ghi canh bao de co so lieu truoc da; khi
+  // biet ty le truot thuc te la bao nhieu thi moi tinh chuyen sinh lai hook.
+  if (brief) {
+    const cham = chamHook(strategy.primary_hook, brief);
+    if (!cham.cuThe) warnings.push(`strategy.primary_hook: ${cham.lyDo}`);
+  }
+
   const hookWords = (strategy.primary_hook || '').trim().split(/\s+/).filter(Boolean).length;
   if (hookWords > MAX_HOOK_WORDS) {
     warnings.push(`strategy.primary_hook has ${hookWords} words (max ${MAX_HOOK_WORDS}). Rendering may feel long.`);
@@ -90,9 +110,13 @@ export function validateRenderPlanTier(plan: Tier4RenderPlan): TierValidationRes
     }
   }
 
-  const supportedMotions = new Set(['static', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right', 'push_in']);
+  // Đọc thẳng từ bảng góc máy, KHÔNG giữ danh sách riêng ở đây.
+  //
+  // Bản cũ liệt kê tay sáu tên và đã trôi khỏi thực tế: `buildRenderPlan` phát ra
+  // `hero_push`/`detail_macro`/… còn danh sách này vẫn là bộ tên cũ, nên mọi bản
+  // render đều trượt cổng kiểm của chính hệ thống.
   for (let i = 0; i < timeline.length; i++) {
-    if (!supportedMotions.has(timeline[i].motion?.type || '')) {
+    if (!SUPPORTED_CAMERA_NAMES.has(timeline[i].motion?.type || '')) {
       errors.push(`render_plan.timeline[${i}].motion.type "${timeline[i].motion?.type}" is not supported`);
     }
   }

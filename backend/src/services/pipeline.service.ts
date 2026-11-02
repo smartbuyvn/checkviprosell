@@ -25,18 +25,25 @@ import {
 } from '../prompts/tiers/tier3-scene-graph';
 import {
   Tier4RenderPlanSchema,
-  buildTier4Prompt,
-  TIER4_SYSTEM_PROMPT,
   type Tier4RenderPlan,
 } from '../prompts/tiers/tier4-render-plan';
+import { buildRenderPlan, type RenderPlanOptions } from '../lib/render-plan';
 import { llmChat, extractJSON , type LlmImage } from './llm.provider';
+import { getPrompt } from './prompt-registry.service';
 import { validateBriefTier, validateStrategyTier, validateSceneGraphTier, validateRenderPlanTier, clampSceneCount } from '../prompts/validators';
 
 const REPAIR_PROMPT = `Kết quả trước không đúng JSON schema hoặc JSON không hợp lệ. Hãy sửa và trả về CHỈ valid JSON đúng schema yêu cầu. Không markdown, không giải thích.`;
 
 type LooseSchema = { safeParse: (v: unknown) => { success: boolean; data?: unknown; error?: any } };
 
-async function runTier<T>(
+/**
+ * Mot lan goi LLM co kiem schema, ghi log va bat loi.
+ *
+ * Xuat ra de luong dung clip (`video-edit.service.ts`) dung lai. Viet mot ban thu hai
+ * cho luong do nghia la hai cho xu ly retry/parse JSON/log khac nhau, va chung se troi
+ * khoi nhau ngay lan sua dau tien.
+ */
+export async function runTier<T>(
   tier: 'brief' | 'strategy' | 'scene_graph' | 'render_plan',
   system: string,
   user: string,
@@ -44,21 +51,43 @@ async function runTier<T>(
   traceId: string,
   /** Anh san pham cho tang nhin duoc; tang khac de trong. */
   images: LlmImage[] = []
-): Promise<{ data: T; provider: 'ollama' | 'gemini'; fallbackUsed: boolean }> {
+): Promise<{ data: T; provider: 'ollama' | 'anthropic' | 'gemini'; fallbackUsed: boolean }> {
   const first = await llmChat({ tier, system, user, traceId, images });
   let parsed = extractJSON(first.text);
   let check = parsed ? schema.safeParse(parsed) : { success: false, error: null };
 
+  /** Gom loi cua zod thanh mot dong doc duoc. */
+  const describe = (c: { error?: any }, raw: string | null): string =>
+    c.error?.issues
+      ? c.error.issues.map((i: any) => `${i.path?.join('.') || 'root'}: ${i.message}`).join(', ').slice(0, 500)
+      : raw === null
+        ? 'khong tach duoc JSON tu cau tra loi'
+        : 'Invalid JSON format';
+
   if (!check.success) {
-    const errStrs = check.error?.issues
-      ? check.error.issues.map((i: any) => `${i.path?.join('.') || 'root'}: ${i.message}`).join(', ').slice(0, 500)
-      : 'Invalid JSON format';
-    console.warn(`[Pipeline] Tier ${tier} failed validation, retrying once (${traceId}): ${errStrs}`);
-    const retry = await llmChat({ tier, system, user: `${user}\n\n${REPAIR_PROMPT}\nErrors: ${errStrs}`, temperature: 0.1, traceId });
+    const firstErr = describe(check, parsed);
+    console.warn(`[Pipeline] Tier ${tier} failed validation, retrying once (${traceId}): ${firstErr}`);
+
+    const retry = await llmChat({
+      tier,
+      system,
+      user: `${user}\n\n${REPAIR_PROMPT}\nErrors: ${firstErr}`,
+      temperature: 0.1,
+      traceId,
+      images,
+    });
     parsed = extractJSON(retry.text);
     check = parsed ? schema.safeParse(parsed) : { success: false, error: null };
+
     if (!check.success) {
-      throw new Error(`TIER_${tier.toUpperCase()}_VALIDATION_FAILED after retry: ${errStrs}`);
+      // Bao loi cua chinh lan THU LAI. Truoc day cho nay bao lai loi cua lan dau, nen
+      // thong bao "after retry: ..." mo ta mot lan goi khac han - doc log khong lan ra.
+      const retryErr = describe(check, parsed);
+      const sameTwice = retryErr === firstErr;
+      throw new Error(
+        `TIER_${tier.toUpperCase()}_VALIDATION_FAILED after retry: ${retryErr}` +
+        (sameTwice ? ' (lan dau hong y het)' : ` (lan dau: ${firstErr})`)
+      );
     }
   }
 
@@ -90,7 +119,7 @@ export const PipelineService = {
     images: LlmImage[] = []
   ): Promise<Tier1Brief> {
     const user = buildTier1Prompt(input);
-    const { data } = await runTier<Tier1Brief>('brief', TIER1_SYSTEM_PROMPT, user, Tier1BriefSchema, traceId, images);
+    const { data } = await runTier<Tier1Brief>('brief', await getPrompt('tier1_brief_system', TIER1_SYSTEM_PROMPT), user, Tier1BriefSchema, traceId, images);
     const v = validateBriefTier(data);
     if (!v.valid) throw new Error(`TIER_BRIEF_INVALID: ${v.errors.join('; ')}`);
     return data;
@@ -98,11 +127,18 @@ export const PipelineService = {
 
   async generateStrategies(brief: Tier1Brief, traceId = 'pipeline'): Promise<Tier2Strategy[]> {
     const user = buildTier2Prompt(brief);
-    const { data } = await runTier<{ strategies: Tier2Strategy[] }>('strategy', TIER2_SYSTEM_PROMPT, user, Tier2BatchSchema, traceId);
+    const { data } = await runTier<{ strategies: Tier2Strategy[] }>('strategy', await getPrompt('tier2_strategy_system', TIER2_SYSTEM_PROMPT), user, Tier2BatchSchema, traceId);
     const strategies = data.strategies;
     for (const s of strategies) {
-      const v = validateStrategyTier(s);
+      // Truyen brief xuong de cham duoc do cu the cua hook: hook co nhac toi san
+      // pham khong, hay la cau dan len mat hang nao cung vua.
+      const v = validateStrategyTier(s, brief);
       if (!v.valid) throw new Error(`TIER_STRATEGY_INVALID: ${v.errors.join('; ')}`);
+      // Canh bao phai ra log. Tinh ra roi vut di thi khong khac gi khong tinh — va
+      // do dung la ly do khong ai biet he thong da giao nam cau hook rong lien tiep.
+      for (const w of v.warnings) {
+        console.warn(`[Tier2] ${w} [${traceId}]`);
+      }
     }
     return strategies;
   },
@@ -113,22 +149,32 @@ export const PipelineService = {
     traceId = 'pipeline'
   ): Promise<Tier3SceneGraph> {
     const user = buildTier3Prompt(brief, strategy);
-    const { data } = await runTier<Tier3SceneGraph>('scene_graph', TIER3_SYSTEM_PROMPT, user, Tier3SceneGraphSchema, traceId);
+    const { data } = await runTier<Tier3SceneGraph>('scene_graph', await getPrompt('tier3_scene_graph_system', TIER3_SYSTEM_PROMPT), user, Tier3SceneGraphSchema, traceId);
     const normalized = normalizeSceneTiming(data);
     const v = validateSceneGraphTier(normalized);
     if (!v.valid) throw new Error(`TIER_SCENE_GRAPH_INVALID: ${v.errors.join('; ')}`);
     return normalized;
   },
 
+  /**
+   * Tang 4 KHONG goi LLM nua — dung bang code trong lib/render-plan.ts.
+   *
+   * Viec cua tang 4 la doi ten truong va dien so: sao scene_id, dich ten goc may
+   * thanh zoom_start/zoom_end, chon do phan giai. Khong co phan doan sang tao nao,
+   * nhung tra gia bang mot lan goi LLM va mot lop loi JSON. Nang hon ca: model tu
+   * dien `resolution`, khach chon 9:16 ma no tra "1080x1080" — video ra vuong.
+   *
+   * Van giu `await` va validateRenderPlanTier: ham nay la async trong moi noi goi,
+   * va cong kiem tra o cuoi bat loi do chinh code nay sinh ra chu khong phai do model.
+   */
   async generateRenderPlan(
     sceneGraph: Tier3SceneGraph,
-    traceId = 'pipeline'
+    opts: RenderPlanOptions = {}
   ): Promise<Tier4RenderPlan> {
-    const user = buildTier4Prompt(sceneGraph);
-    const { data } = await runTier<Tier4RenderPlan>('render_plan', TIER4_SYSTEM_PROMPT, user, Tier4RenderPlanSchema, traceId);
-    const v = validateRenderPlanTier(data);
+    const plan = buildRenderPlan(sceneGraph, opts);
+    const v = validateRenderPlanTier(plan);
     if (!v.valid) throw new Error(`TIER_RENDER_PLAN_INVALID: ${v.errors.join('; ')}`);
-    return data;
+    return plan;
   },
 
   /**
@@ -136,30 +182,30 @@ export const PipelineService = {
    */
   async runFullPipeline(
     input: Record<string, unknown>,
-    traceId = 'pipeline'
+    traceId = 'pipeline',
+    opts: RenderPlanOptions = {}
   ): Promise<{
     brief: Tier1Brief;
     strategies: Tier2Strategy[];
     strategy: Tier2Strategy;
     sceneGraph: Tier3SceneGraph;
     renderPlan: Tier4RenderPlan;
-    provider: 'ollama' | 'gemini';
-    fallbackUsed: boolean;
   }> {
     const brief = await PipelineService.generateBrief(input, traceId);
     const strategies = await PipelineService.generateStrategies(brief, traceId);
     const strategy = strategies[0];
     const sceneCount = clampSceneCount(strategy);
     const sceneGraph = await PipelineService.generateSceneGraph(brief, strategy, traceId);
-    const plan = await PipelineService.generateRenderPlan(sceneGraph, traceId);
+    const plan = await PipelineService.generateRenderPlan(sceneGraph, opts);
     return {
       brief,
       strategies,
       strategy,
       sceneGraph,
       renderPlan: plan,
-      provider: 'ollama',
-      fallbackUsed: false,
+      // Bo hai truong provider/fallbackUsed: chung ghi cung 'ollama'/false nen luon sai,
+      // nhat la tu khi Ollama tat mac dinh. Moi tang co the chay tren nha cung cap khac
+      // nhau, nen mot gia tri duy nhat khong mo ta duoc that. Can thi tra ve danh sach.
     };
   },
 };

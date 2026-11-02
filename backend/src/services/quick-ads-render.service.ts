@@ -91,11 +91,25 @@ export const QuickAdsRenderService = {
   async startRender(input: QuickAdsRenderInput, jobId?: string): Promise<RenderJobResult> {
     const id = jobId ?? crypto.randomUUID();
 
-    if (!input.product_url && (!input.image_urls || input.image_urls.length < 3)) {
+    // Anh/video la BAT BUOC. Link san pham mot minh khong du.
+    //
+    // Nhanh cu cho qua khi co `product_url` ma khong co file nao — nhung khong cho
+    // nao trong he thong tai anh tu link ve, va SPEC V3 §2.3 CAM lam viec do (dieu
+    // khoan san thuong mai dien tu, va anh tren san mang watermark cua nguoi ban khac).
+    // Nen nhanh do dan thang toi mot ban render khong co lieu dau vao: worker chay,
+    // tieu tien LLM, roi dung lai o guard NO_PRODUCT_IMAGES.
+    //
+    // Route /quick-ads/scene-graph von da bat buoc image_urls khong rong, nen nhanh nay
+    // khong bao gio toi duoc qua duong HTTP — hai tang noi hai dieu khac nhau. Gio thi
+    // thong nhat: khong co file, khong co video.
+    //
+    // Link van duoc giu lai va van co ich: no di xuong tang 1 lam ngu canh VAN BAN
+    // (ten, gia, mo ta), dung nhu spec cho phep.
+    if (!input.image_urls || input.image_urls.length < 3) {
       return {
         job_id: id,
         status: 'failed',
-        error: 'Must provide a product_url or at least 3 image_urls.',
+        error: 'Cần ít nhất 3 ảnh hoặc video sản phẩm. Link sản phẩm chỉ dùng làm ngữ cảnh văn bản, không thay được file.',
       };
     }
 

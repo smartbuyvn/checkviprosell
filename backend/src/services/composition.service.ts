@@ -19,11 +19,19 @@ export const CompositionService = {
    * Create a render row (status=pending) for the Realtime worker.
    * Returns immediately with { renderId, status: 'pending' }.
    */
+  /**
+   * @param sceneGraph Do thi canh DA co (tu trang kich ban). Null thi chay pipeline.
+   * @param rawInput   Du lieu san pham tho de chay ca 4 tang. KHONG duoc nhet vao
+   *                   sceneGraph: wizard tung lam vay, khien worker tuong da co
+   *                   scene graph roi bo qua tang 1-2-3 — video ra khong co loi doc,
+   *                   chu overlay la ten goi, canh khong da dang.
+   */
   async startComposition(
     projectId: string,
     sceneGraph: any,
     aspectRatio: string,
-    renderMode: string
+    renderMode: string,
+    rawInput: any = null
   ) {
     const renderId = randomUUID();
     const traceId = randomUUID();
@@ -41,7 +49,8 @@ export const CompositionService = {
       render_mode: dbRenderMode,
       aspect_ratio: aspectRatio,
       status: 'pending',
-      scene_graph_json: sceneGraph || null,
+        scene_graph_json: sceneGraph || null,
+      raw_input: rawInput || null,
     });
     if (insertErr) throw new Error(`RENDER_INSERT_FAILED: ${insertErr.message}`);
 

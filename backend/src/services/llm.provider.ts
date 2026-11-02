@@ -12,6 +12,7 @@
  *   - FFmpeg NVENC render stays on GPU 0 (see render.worker.ts).
  */
 import 'dotenv/config';
+import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
 export type LlmTier = 'brief' | 'strategy' | 'scene_graph' | 'render_plan';
@@ -41,7 +42,7 @@ export interface LlmChatOptions {
 
 export interface LlmChatResult {
   text: string;
-  provider: 'ollama' | 'gemini';
+  provider: 'ollama' | 'anthropic' | 'gemini';
   latencyMs: number;
   fallbackUsed: boolean;
 }
@@ -67,6 +68,21 @@ function getConfig() {
     localOnlyMode: getEnv('LOCAL_ONLY_MODE', 'false') === 'true',
     allowExternal: getEnv('ALLOW_EXTERNAL_AI_APIS', 'true') !== 'false',
     geminiTimeoutMs: parseInt(getEnv('GEMINI_TIMEOUT_MS', '45000'), 10),
+
+    // Haiku 5.5 la model chinh theo quyet dinh #6 cua spec: 0,10/0,50 USD moi 1M token,
+    // so voi 0,30/2,50 cua Gemini 2.5 Flash — re hon 4,4 lan o dau ra, va dau ra la
+    // phan ton nhat vi moi tang deu sinh JSON dai.
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+    anthropicModel: getEnv('ANTHROPIC_MODEL', 'claude-haiku-5-5'),
+    anthropicTimeoutMs: parseInt(getEnv('ANTHROPIC_TIMEOUT_MS', '60000'), 10),
+    // Haiku 5.5 BAT suy nghi mac dinh va token suy nghi tinh tien nhu dau ra.
+    // Cac tang nay chi dien JSON theo ban mau co san nen 'low' la du; de mac dinh
+    // 'medium' la tra tien cho phan suy luan khong dung toi.
+    anthropicEffort: getEnv('ANTHROPIC_EFFORT', 'low'),
+
+    // Ollama mac dinh TAT. Worker chay o may ca nhan thi bat duoc, nhung tren VPS
+    // localhost:11435 khong co gi — moi lan goi la mot lan fetch that bai vo ich.
+    ollamaEnabled: getEnv('OLLAMA_ENABLED', 'false') === 'true',
   };
 }
 
@@ -151,7 +167,124 @@ async function callOllama(
   }
 }
 
-async function callGemini(
+/**
+ * Ma trang thai dang "thu lai thi duoc": qua tai, nghen, loi tam thoi phia server.
+ *
+ * 503 cua Gemini ghi han "Spikes in demand are usually temporary. Please try again
+ * later" - bo cuoc ngay lan dau la vut di mot lan sinh noi dung dang le thanh cong.
+ * 400/401/403/404 khong co trong danh sach: thu lai bao nhieu lan cung the.
+ */
+const RETRYABLE_HTTP_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+export function isRetryableStatus(status: number): boolean {
+  return RETRYABLE_HTTP_STATUS.has(status);
+}
+
+/**
+ * Thoi gian cho truoc lan thu ke tiep: tang gap doi moi lan, cong them nhieu ngau nhien.
+ *
+ * Nhieu ngau nhien de nhieu yeu cau cung bi tu choi mot luc khong dong loat quay lai
+ * dung cung mot thoi diem va lam nghen tiep.
+ */
+export function nextBackoffMs(attempt: number, baseMs: number): number {
+  const exponential = baseMs * Math.pow(2, attempt);
+  return Math.round(exponential + Math.random() * baseMs);
+}
+
+/** Loi HTTP co kem ma trang thai, de ben goi quyet dinh co thu lai khong. */
+class HttpStatusError extends Error {
+  constructor(message: string, readonly status: number, readonly retryAfterMs: number | null) {
+    super(message);
+    this.name = 'HttpStatusError';
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Doc header Retry-After (so giay, hoac mot moc thoi gian). Tra null neu khong doc duoc. */
+function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const at = Date.parse(header);
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now());
+}
+
+/**
+ * Goi Claude Haiku 5.5 — model chinh theo quyet dinh #6 cua spec.
+ *
+ * Khac Gemini o ba cho dang chu y:
+ * - Suy nghi LUON BAT tren Haiku 5.5; khong tat duoc bang tham so, chi ha duoc do sau
+ *   qua output_config.effort. Dat 'low' vi cac tang chi dien JSON theo ban mau.
+ * - Anh gui kem dung khoi { type: 'image', source: { type: 'base64' } }, khac inline_data.
+ * - SDK tu thu lai 408/409/429/5xx, nen o day khong tu viet vong lap thu lai nua.
+ */
+async function callAnthropic(
+  system: string,
+  user: string,
+  temperature: number,
+  timeoutMs: number,
+  traceId: string,
+  images: LlmImage[] = []
+): Promise<{ text: string; latencyMs: number }> {
+  const cfg = getConfig();
+  if (!cfg.anthropicApiKey) throw new Error('ANTHROPIC_DISABLED: ANTHROPIC_API_KEY not set');
+
+  const client = new Anthropic({
+    apiKey: cfg.anthropicApiKey,
+    timeout: timeoutMs,
+    maxRetries: parseInt(getEnv('ANTHROPIC_MAX_RETRIES', '2'), 10),
+  });
+
+  const start = Date.now();
+
+  try {
+    // Chu truoc, anh sau: model doc yeu cau roi moi soi anh theo yeu cau do.
+    const content: Anthropic.ContentBlockParam[] = [
+      { type: 'text', text: user },
+      ...images.map((img) => ({
+        type: 'image' as const,
+        source: {
+          type: 'base64' as const,
+          media_type: img.mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+          data: img.base64,
+        },
+      })),
+    ];
+
+    const res = await client.messages.create({
+      model: cfg.anthropicModel,
+      max_tokens: parseInt(getEnv('ANTHROPIC_MAX_TOKENS', '8192'), 10),
+      system,
+      output_config: { effort: cfg.anthropicEffort as 'low' | 'medium' | 'high' },
+      messages: [{ role: 'user', content }],
+    });
+
+    // Bo khoi suy nghi, chi gop van ban that. Gop MOI khoi text chu khong lay khoi dau:
+    // lay khoi dau la loi da lam vo pipeline voi Gemini ngay 27/10.
+    const text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+
+    if (res.stop_reason === 'max_tokens') {
+      console.warn(`[LLM] Haiku bi cat vi het max_tokens — JSON co the thieu khoa [${traceId}]`);
+    }
+    if (res.stop_reason === 'refusal') {
+      throw new Error(`ANTHROPIC_REFUSAL: ${res.stop_details?.explanation ?? 'khong ro ly do'}`);
+    }
+    if (!text) throw new Error(`ANTHROPIC_EMPTY_RESPONSE (stop_reason=${res.stop_reason})`);
+
+    return { text, latencyMs: Date.now() - start };
+  } catch (err: any) {
+    if (err?.message?.startsWith('ANTHROPIC_')) throw err;
+    throw new Error(`ANTHROPIC_ERROR: ${err.message} [${traceId}]`);
+  }
+}
+
+async function callGeminiOnce(
   system: string,
   user: string,
   temperature: number,
@@ -181,21 +314,99 @@ async function callGemini(
             })),
           ],
         }],
-        generationConfig: { temperature, topP: 0.9 },
+        // Phai dat tran token dau ra: scene graph 4-10 canh, moi canh hon chuc truong,
+        // de mac dinh thi cau tra loi bi cat giua chung va JSON thieu han khoa "scenes".
+        generationConfig: {
+          temperature,
+          topP: 0.9,
+          maxOutputTokens: parseInt(getEnv('GEMINI_MAX_OUTPUT_TOKENS', '8192'), 10),
+          responseMimeType: 'application/json',
+        },
       }),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 300);
+      throw new HttpStatusError(
+        `HTTP ${res.status}: ${body}`,
+        res.status,
+        parseRetryAfter(res.headers.get('retry-after'))
+      );
+    }
     const data = await res.json() as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    if (!text) throw new Error('GEMINI_EMPTY_RESPONSE');
+    const candidate = data?.candidates?.[0];
+
+    // Gop MOI phan van ban, bo phan suy nghi. Truoc day chi lay parts[0].text:
+    // gemini-2.5-flash tra nhieu part nen cach cu co the vo phai phan suy nghi hoac
+    // mot mau cut, lam JSON thieu khoa va bao "expected array, received undefined".
+    const text = (candidate?.content?.parts ?? [])
+      .filter((p: any) => p?.thought !== true && typeof p?.text === 'string')
+      .map((p: any) => p.text)
+      .join('');
+
+    // Bi cat vi het tran token thi phai noi ra, dung de lap im lang roi bao JSON hong.
+    if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+      console.warn(`[LLM] Gemini ket thuc bat thuong: ${candidate.finishReason} [${traceId}]`);
+    }
+
+    if (!text) throw new Error(`GEMINI_EMPTY_RESPONSE (finishReason=${candidate?.finishReason ?? 'khong ro'})`);
     return { text, latencyMs: Date.now() - start };
   } catch (err: any) {
     if (err.name === 'AbortError') throw new Error(`GEMINI_TIMEOUT: exceeded ${timeoutMs}ms [${traceId}]`);
+    // Giu nguyen HttpStatusError de vong thu lai con doc duoc ma trang thai.
+    if (err instanceof HttpStatusError) throw err;
     throw new Error(`GEMINI_ERROR: ${err.message} [${traceId}]`);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Goi Gemini, thu lai khi gap loi tam thoi (503 qua tai, 429 nghen, 5xx).
+ *
+ * Khong thu lai loi cau hinh (thieu khoa, 400, 403): thu lai chi lam khach cho lau
+ * hon roi van hong. Het so lan thu thi nem loi kem so lan da thu de doc log biet ngay
+ * la da co gang bao nhieu.
+ */
+async function callGemini(
+  system: string,
+  user: string,
+  temperature: number,
+  timeoutMs: number,
+  traceId: string,
+  images: LlmImage[] = []
+): Promise<{ text: string; latencyMs: number }> {
+  const maxRetries = parseInt(getEnv('GEMINI_MAX_RETRIES', '2'), 10);
+  const baseMs = parseInt(getEnv('GEMINI_RETRY_BASE_MS', '800'), 10);
+
+  let lastErr: any;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await callGeminiOnce(system, user, temperature, timeoutMs, traceId, images);
+      if (attempt > 0) {
+        console.log(`[LLM] Gemini thanh cong o lan thu ${attempt + 1}/${maxRetries + 1} [${traceId}]`);
+      }
+      return result;
+    } catch (err: any) {
+      lastErr = err;
+
+      const retryable = err instanceof HttpStatusError && isRetryableStatus(err.status);
+      if (!retryable || attempt === maxRetries) break;
+
+      const waitMs = err.retryAfterMs ?? nextBackoffMs(attempt, baseMs);
+      console.warn(
+        `[LLM] Gemini ${err.status} (tam thoi), cho ${waitMs}ms roi thu lai ` +
+        `lan ${attempt + 2}/${maxRetries + 1} [${traceId}]`
+      );
+      await sleep(waitMs);
+    }
+  }
+
+  const tried = `da thu ${maxRetries + 1} lan`;
+  if (lastErr instanceof HttpStatusError) {
+    throw new Error(`GEMINI_ERROR: ${lastErr.message} (${tried}) [${traceId}]`);
+  }
+  throw lastErr;
 }
 
 export function extractJSON(text: string): any {
@@ -210,30 +421,78 @@ export function extractJSON(text: string): any {
   return null;
 }
 
+/**
+ * Thu tu nha cung cap, theo quyet dinh #6 cua spec: Haiku 5.5 chinh, Gemini du phong.
+ *
+ * Ollama chi dung khi bat tuong minh (OLLAMA_ENABLED=true). Truoc day no luon duoc goi
+ * dau tien, nhung tren VPS localhost:11435 khong co gi nen moi lan goi la mot lan fetch
+ * that bai vo ich — log ngay 27/10 day dac dong OLLAMA_UNREACHABLE.
+ *
+ * Nha cung cap nao thieu khoa thi bo qua, khong tinh la that bai.
+ */
 export async function llmChat(options: LlmChatOptions): Promise<LlmChatResult> {
   const cfg = getConfig();
   const { externalAllowed } = await resolvePolicy();
   const temperature = options.temperature ?? TIER_TEMPERATURES[options.tier];
-  const timeoutMs = options.timeoutMs ?? cfg.ollamaTimeoutMs;
   const traceId = options.traceId || 'no-trace';
+  const images = options.images ?? [];
 
-  const startedAt = Date.now();
+  type Attempt = {
+    name: LlmChatResult['provider'];
+    usable: boolean;
+    run: () => Promise<{ text: string; latencyMs: number }>;
+  };
 
-  try {
-    const local = await callOllama(options.system, options.user, temperature, timeoutMs, traceId);
-    return { text: local.text, provider: 'ollama', latencyMs: local.latencyMs, fallbackUsed: false };
-  } catch (err: any) {
-    console.warn(`[LLM] Ollama failed (tier=${options.tier}): ${err.message}`);
-    if (!externalAllowed) {
-      const elapsed = Date.now() - startedAt;
-      throw new Error(`LOCAL_LLM_ONLY: ${err.message} (external AI disabled by policy)`);
-    }
-// Ollama o nhanh tren chay model van ban nen anh bi bo qua; chi Gemini nhin duoc.
-const gemini = await callGemini(
-  options.system, options.user, temperature, cfg.geminiTimeoutMs, traceId, options.images ?? []
-);
-    return { text: gemini.text, provider: 'gemini', latencyMs: gemini.latencyMs, fallbackUsed: true };
+  const attempts: Attempt[] = [
+    {
+      name: 'ollama',
+      usable: cfg.ollamaEnabled,
+      // Ollama chay model van ban nen anh bi bo qua o day.
+      run: () => callOllama(options.system, options.user, temperature,
+        options.timeoutMs ?? cfg.ollamaTimeoutMs, traceId),
+    },
+    {
+      name: 'anthropic',
+      usable: externalAllowed && !!cfg.anthropicApiKey,
+      run: () => callAnthropic(options.system, options.user, temperature,
+        cfg.anthropicTimeoutMs, traceId, images),
+    },
+    {
+      name: 'gemini',
+      usable: externalAllowed && !!cfg.geminiApiKey,
+      run: () => callGemini(options.system, options.user, temperature,
+        cfg.geminiTimeoutMs, traceId, images),
+    },
+  ];
+
+  const usable = attempts.filter((a) => a.usable);
+
+  if (usable.length === 0) {
+    throw new Error(
+      externalAllowed
+        ? 'NO_LLM_PROVIDER: chua dat ANTHROPIC_API_KEY lan GEMINI_API_KEY'
+        : 'LOCAL_LLM_ONLY: chinh sach cam goi AI ben ngoai va Ollama dang tat'
+    );
   }
+
+  const errors: string[] = [];
+
+  for (let i = 0; i < usable.length; i++) {
+    const a = usable[i];
+    try {
+      const r = await a.run();
+      if (i > 0) console.log(`[LLM] ${a.name} nhan viec sau khi ${usable[i - 1].name} hong [${traceId}]`);
+      return { text: r.text, provider: a.name, latencyMs: r.latencyMs, fallbackUsed: i > 0 };
+    } catch (err: any) {
+      errors.push(`${a.name}: ${err.message}`);
+      const last = i === usable.length - 1;
+      console.warn(`[LLM] ${a.name} hong (tier=${options.tier}): ${err.message}`);
+      if (last) throw new Error(`ALL_LLM_PROVIDERS_FAILED — ${errors.join(' | ')}`);
+    }
+  }
+
+  // Khong toi day duoc: vong lap o tren hoac tra ve hoac nem loi.
+  throw new Error(`ALL_LLM_PROVIDERS_FAILED — ${errors.join(' | ')}`);
 }
 
 export async function ollamaHealth(): Promise<{ status: 'up' | 'down'; model?: string; error?: string }> {

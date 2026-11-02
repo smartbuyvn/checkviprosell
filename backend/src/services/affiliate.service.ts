@@ -168,6 +168,14 @@ export const AffiliateService = {
 
     const code = profile?.affiliate_code || '';
 
+    // Ma rong nghia la link gioi thieu cua doi tac nay chet: '.../signup?ref=' khong
+    // quy duoc giao dich ve ai. Trigger profiles_ensure_affiliate_code dam bao chuyen
+    // nay khong con xay ra, nhung neu van xay ra thi phai keu len — chinh su IM LANG
+    // o day da de ca chuong trinh affiliate khong chay suot tu ngay dau ma khong ai biet.
+    if (!code) {
+      console.error(`[Affiliate] profile ${userId} KHONG CO affiliate_code — link gioi thieu se chet. Kiem tra migration 20261028000004.`);
+    }
+
     // Count all users referred by this affiliate code
     let totalReferrals = 0;
     if (code) {
@@ -250,9 +258,17 @@ export const AffiliateService = {
     };
   },
 
-  async refer(userId: string, code: string) {
+  async refer(userId: string, codeRaw: string) {
+    // Chuan hoa TRUOC moi viec khac.
+    //
+    // Ma duoc go tay vao o "Nhap ma gioi thieu", va `.eq('affiliate_code', ...)` phan
+    // biet hoa thuong. Khong chuan hoa thi khach go 'VIPROH7K2MQ' nhan duoc "Ma gioi
+    // thieu khong ton tai" — thong bao dung ve ky thuat va vo nghia voi ho. Chuan hoa
+    // o day thi ca lan tra cuu lan gia tri luu vao `referred_by` deu ve mot dang,
+    // nen webhook quy hoa hong sau nay cung khop.
+    const code = String(codeRaw ?? '').trim().toLowerCase();
     if (!code) throw new Error('Mã giới thiệu không hợp lệ');
-    
+
     // 1. Validate the code exists and belongs to someone else
     const { data: referrerProfile, error: referrerError } = await supabase
       .from('profiles')

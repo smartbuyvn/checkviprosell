@@ -1,31 +1,30 @@
 /**
- * Viprosell — Tier 4: Render Plan (Local AI Video Ads Pipeline)
- * System prompt + user template + zod schema.
- * Converts a validated scene graph into a deterministic FFmpeg NVENC render plan.
+ * Viprosell — Tầng 4: lược đồ kế hoạch dựng
+ *
+ * CHỈ CÒN LƯỢC ĐỒ. Tầng 4 KHÔNG gọi LLM — kế hoạch dựng do hàm `buildRenderPlan`
+ * trong `lib/render-plan.ts` sinh ra. Lược đồ ở đây là cổng kiểm cho kết quả của
+ * hàm đó, và là nguồn của kiểu `Tier4RenderPlan` mà 19 chỗ trong mã đang dùng.
+ *
+ * `TIER4_SYSTEM_PROMPT`, `TIER4_USER_TEMPLATE` và `buildTier4Prompt` đã xoá ngày
+ * 01/11/2026: không nơi nào gọi, và để lại thì người đọc tưởng tầng 4 còn tốn
+ * một lượt LLM nữa.
  */
 import { z } from 'zod';
 
-export const TIER4_SYSTEM_PROMPT = `You are a render-planning engine for an FFmpeg NVENC short-video renderer.
-You receive a validated scene graph and must convert it into a deterministic render plan JSON.
 
-Rules:
-- Output valid JSON only.
-- No markdown.
-- Use instructions that are realistically executable by an FFmpeg-based composition pipeline.
-- Assume image-based scenes, text overlays, subtitle burn-in, background music, voiceover, and simple transitions.
-- Keep transitions minimal and production-safe.
-- Do not introduce unsupported features.
-- Prefer consistent naming, timing and coordinates.
-- Supported camera motions: static, zoom_in, zoom_out, pan_left, pan_right, push_in.
-- Supported transitions: cut, fade.
-- Supported crop modes: simple_crop, smart_pan.`;
+/**
+ * Model doi khi bo qua lop vo va tra thang mang timeline o goc, gay loi
+ * "root: Invalid input: expected object, received array". Boc lai thay vi bo ca lan goi.
+ */
+function wrapBareTimeline(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    console.warn('[Tier4] model tra mang o goc, boc lai thanh { timeline: [...] }');
+    return { timeline: value };
+  }
+  return value;
+}
 
-export const TIER4_USER_TEMPLATE = `SCENE GRAPH JSON:
-{{scene_graph_json}}
-
-Return the render plan JSON.`;
-
-export const Tier4RenderPlanSchema = z.object({
+const Tier4Shape = z.object({
   render_meta: z.object({
     renderer: z.string().default('ffmpeg_nvenc'),
     gpu_index: z.number().int().min(0).max(1).default(0),
@@ -42,8 +41,8 @@ export const Tier4RenderPlanSchema = z.object({
   timeline: z.array(
     z.object({
       scene_id: z.string().min(1),
-      start_sec: z.number().min(0),
-      end_sec: z.number().min(0),
+      start_sec: z.coerce.number().min(0),
+      end_sec: z.coerce.number().min(0),
       asset_id: z.string().min(1),
       crop_mode: z.enum(['simple_crop', 'smart_pan']).catch('simple_crop'),
       motion: z.object({
@@ -74,14 +73,15 @@ export const Tier4RenderPlanSchema = z.object({
   }).default({ burn_in: true, style: 'clean_white_shadow', position_y: 0.82 }),
   export: z.object({
     format: z.string().default('mp4'),
-    codec: z.enum(['h264_nvenc', 'libx264']).catch('h264_nvenc'),
+    // Mac dinh libx264: spec quyet dinh #2 chot render bang CPU va worker chay o
+    // bat ky dau. De mac dinh h264_nvenc thi may khong co NVIDIA se thu NVENC that
+    // bai roi moi lui ve CPU - ton mot lan goi ffmpeg vo ich cho MOI ban render.
+    codec: z.enum(['h264_nvenc', 'libx264']).catch('libx264'),
     resolution: z.string().default('1080x1920'),
     audio_codec: z.string().default('aac'),
-  }).default({ format: 'mp4', codec: 'h264_nvenc', resolution: '1080x1920', audio_codec: 'aac' }),
+  }).default({ format: 'mp4', codec: 'libx264', resolution: '1080x1920', audio_codec: 'aac' }),
 });
 
-export type Tier4RenderPlan = z.infer<typeof Tier4RenderPlanSchema>;
+export const Tier4RenderPlanSchema = z.preprocess(wrapBareTimeline, Tier4Shape);
 
-export function buildTier4Prompt(sceneGraphJson: unknown): string {
-  return TIER4_USER_TEMPLATE.replace('{{scene_graph_json}}', JSON.stringify(sceneGraphJson));
-}
+export type Tier4RenderPlan = z.infer<typeof Tier4Shape>;
