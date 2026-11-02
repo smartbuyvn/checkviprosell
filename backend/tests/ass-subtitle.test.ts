@@ -75,3 +75,86 @@ test('thoát dấu hai chấm trong đường dẫn cho filter subtitles', () =>
   assert.equal(escapeFilterPath('C:\\tmp\\a.ass'), 'C\\:/tmp/a.ass');
   assert.equal(escapeFilterPath('/srv/x/a.ass'), '/srv/x/a.ass');
 });
+
+/**
+ * Vien chu phai NHE va chu phai DU TO.
+ *
+ * Khach bao ngay 30/10: "hieu ung vien chu phu de can nhe hon, tranh nang ne, tang
+ * size phu hop voi khung hinh video".
+ *
+ * Ban cu: Outline=3 cho phu de va Outline=4 cho tieu de, voi
+ * `ScaledBorderAndShadow: yes` tren PlayResX=1080 — vien den DAC day 3-4 pixel quanh
+ * moi net chu. Co chu phu de 30px chi la 2,8% be ngang khung.
+ *
+ * Do tren nen xam phang, dem dien tich diem anh:
+ *
+ *   cu:   chu 0,072%   vien+bong 0,284%   ti le vien/chu 3,96
+ *   moi:  chu 0,186%   vien+bong 0,321%   ti le vien/chu 1,72
+ *
+ * Chu to gap 2,6 lan, luc muc den quanh net giam hon mot nua.
+ */
+test('vien chu MONG, khong phai vien dac 3-4px', () => {
+  const ass = buildAssFile(
+    [{ startSec: 0, endSec: 3, text: 'Thu', style: 'Sub' }],
+    { width: 1080, height: 1920, fontName: 'Arial', overlayFontSize: 70, subFontSize: 45,
+      overlayMarginV: 345, subMarginV: 345, marginH: 86 }
+  );
+  const dongSub = ass.split('\n').find((l) => l.startsWith('Style: Sub,'))!;
+  const truong = dongSub.replace('Style: ', '').split(',');
+  // Thu tu: Name,Fontname,Fontsize,Primary,Secondary,Outline,Back,Bold,Italic,
+  // Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,...
+  const doDayVien = Number(truong[16]);
+  // Tran tren: tren 2 la nang ne nhu phu de karaoke cu.
+  assert.ok(doDayVien <= 2, `Vien day ${doDayVien} — nang ne nhu phu de karaoke cu`);
+  // San 0,5: duoi muc nay chu chim vao nen sang.
+  //
+  // Da ha ba lan theo yeu cau khach: 1,2 -> 0,9 -> 0,6. Do ti le muc toi tren chu
+  // tren nen xam phang, cung nguong 110: 1,26 -> 1,11 -> 0,96.
+  //
+  // Bu lai bang BONG DO, khong phai vien: vien la duong ke bam sat net chu nen mat
+  // doc ra la "nang"; bong toa ra ngoai va mo dan nen tang bong khong lam chu day.
+  assert.ok(doDayVien >= 0.5, `Vien ${doDayVien} mong qua, chu se chim vao nen sang`);
+});
+
+test('dung bong MO ban trong suot, khong phai bong den dac', () => {
+  const ass = buildAssFile(
+    [{ startSec: 0, endSec: 3, text: 'Thu', style: 'Sub' }],
+    { width: 1080, height: 1920, fontName: 'Arial', overlayFontSize: 70, subFontSize: 45,
+      overlayMarginV: 345, subMarginV: 345, marginH: 86 }
+  );
+  // BackColour la truong thu 7. Alpha nam o hai ky tu dau sau &H.
+  const dongSub = ass.split('\n').find((l) => l.startsWith('Style: Sub,'))!;
+  const back = dongSub.replace('Style: ', '').split(',')[6];
+  assert.match(back, /^&H[1-9A-F]/i, `BackColour ${back} van dac — phai co alpha`);
+});
+
+test('lam mem canh bang blur', () => {
+  const ass = buildAssFile(
+    [{ startSec: 0, endSec: 3, text: 'Thu', style: 'Sub' },
+     { startSec: 3, endSec: 6, text: 'Tieu de', style: 'Overlay' }],
+    { width: 1080, height: 1920, fontName: 'Arial', overlayFontSize: 70, subFontSize: 45,
+      overlayMarginV: 345, subMarginV: 345, marginH: 86 }
+  );
+  // Dung indexOf chu khong dung bieu thuc chinh quy: dau `\` trong ASS de bi
+  // nuot qua nhieu lop trich dan, va mot test khong khop vi ly do do thi gay
+  // hieu nham la ma nguon hong.
+  assert.ok(ass.includes('\\blur0.4'), 'Phu de thieu blur');
+  assert.ok(ass.includes('\\blur0.6'), 'Tieu de thieu blur');
+  // Tren 1,0 thi chu nhoe, kho doc tren nen dang chuyen dong.
+  const cacBlur = [...ass.matchAll(/blur([0-9.]+)/g)].map((m) => Number(m[1]));
+  for (const b of cacBlur) assert.ok(b > 0 && b <= 1, `blur${b} ngoai khoang doc duoc`);
+});
+
+test('vien tinh theo be ngang khung, khong viet cung', () => {
+  // Video 1:1 hay 16:9 khong duoc co vien day gap doi so voi 9:16.
+  const lay = (w: number) => {
+    const ass = buildAssFile(
+      [{ startSec: 0, endSec: 3, text: 'Thu', style: 'Sub' }],
+      { width: w, height: Math.round(w * 16 / 9), fontName: 'Arial',
+        overlayFontSize: 70, subFontSize: 45, overlayMarginV: 100, subMarginV: 100, marginH: 50 }
+    );
+    return Number(ass.split('\n').find((l) => l.startsWith('Style: Sub,'))!
+      .replace('Style: ', '').split(',')[16]);
+  };
+  assert.ok(lay(2160) > lay(1080), 'Khung rong gap doi phai co vien day hon');
+});
