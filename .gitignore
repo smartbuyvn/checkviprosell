@@ -81,3 +81,10 @@ fix-domain.cjs
 fix-encoding*.cjs
 fix-encoding*.js
 fix-win1252.cjs
+
+# Mô hình AI nặng — tải riêng, không đưa vào git (ggml-small.bin ~466MB)
+models/
+
+# Rác sinh ra lúc chạy
+backend/tts-cache/
+backend/assets/tmp/
