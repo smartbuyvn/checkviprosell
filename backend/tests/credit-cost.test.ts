@@ -94,8 +94,13 @@ test('KHONG BAO GIO tra ve 0 — 0 nghia la dung mien phi khong gioi han', () =>
   assert.ok(creditsFor({ durationSec: NaN as any }) >= 1);
 });
 
-test('thieu thoi luong thi dung mac dinh 20 giay, khong tinh dat', () => {
-  assert.equal(creditsFor({}), creditsFor({ durationSec: 20 }));
+// Doi 02/11/2026: mac dinh 20 -> 15 giay. 20 la bac gia cua bang cu (truoc 30/10);
+// luat hien tai la 1 credit moi 15 giay, nen mac dinh 20 bat mot don thieu thoi luong
+// phai tra 2 credit trong khi video ngan nhat chi dang 1. Ghim cung so 15 o day la co
+// y: lan sau doi nguong gia thi test phai do, buoc nguoi doi phai co y thuc.
+test('thieu thoi luong thi dung mac dinh 15 giay, khong tinh dat', () => {
+  assert.equal(creditsFor({}), creditsFor({ durationSec: 15 }));
+  assert.equal(creditsFor({}), 1);
 });
 
 test('luon tra ve so nguyen — so cai la cot INTEGER', () => {
@@ -156,8 +161,8 @@ test('specFromRequest lay thoi luong tu don khach dat', () => {
 test('specFromRequest thieu thoi luong thi lui ve mac dinh, khong ve 0', () => {
   for (const x of [null, undefined, {}, { duration_seconds: 0 }, { duration_seconds: 'abc' }]) {
     const spec = specFromRequest(x as any, 'draft_local');
-    assert.equal(spec.durationSec, 20);
-    assert.equal(creditsFor(spec), 2);
+    assert.equal(spec.durationSec, 15);
+    assert.equal(creditsFor(spec), 1);
   }
 });
 
@@ -179,6 +184,6 @@ test('specFromRender: lay do dai tu moc ket thuc cuoi cung', () => {
 });
 
 test('specFromRender: khong co timeline thi dung do dai chuan, khong phai 0', () => {
-  assert.equal(specFromRender({ render_mode: 'draft_local' }, {}).durationSec, 20);
-  assert.equal(specFromRender(null, null).durationSec, 20);
+  assert.equal(specFromRender({ render_mode: 'draft_local' }, {}).durationSec, 15);
+  assert.equal(specFromRender(null, null).durationSec, 15);
 });

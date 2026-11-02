@@ -70,8 +70,18 @@ export interface RenderSpec {
 /** Mỗi khối thời lượng tốn 1 credit. */
 export const GIAY_MOI_CREDIT = 15;
 
-/** Thời lượng mặc định khi đơn hàng không nói rõ. */
-export const BASE_DURATION_SEC = 20;
+/**
+ * Thời lượng mặc định khi đơn hàng không nói rõ.
+ *
+ * Để 15 chứ không phải 20: 20 là bậc giá của bảng cũ (trước 30/10), còn luật hiện tại
+ * là 1 credit mỗi 15 giây. Mặc định 20 làm một đơn thiếu thời lượng bị tính 2 credit
+ * trong khi video ngắn nhất chỉ đáng 1.
+ *
+ * Mặc định THẤP là có chủ ý: khi hệ thống mất dấu thời lượng thì tính thiếu cho mình,
+ * không tính thừa cho khách. Cách sửa đúng là đừng để thiếu — cột `renders.duration_seconds`
+ * (migration 20261101000001) có sẵn để chuyện đó không xảy ra nữa.
+ */
+export const BASE_DURATION_SEC = 15;
 
 /** Video ngắn nhất vẫn tốn 1 credit. */
 export const BASE_CREDITS = 1;

@@ -32,7 +32,8 @@ export interface RenderSpec {
 /** Mỗi khối thời lượng tốn 1 credit. */
 export const GIAY_MOI_CREDIT = 15;
 export const BASE_CREDITS = 1;
-export const BASE_DURATION_SEC = 20;
+/** Thời lượng mặc định khi không rõ. 15 chứ không 20 — xem chú thích ở bản backend. */
+export const BASE_DURATION_SEC = 15;
 
 /**
  * Số credit cho một lần dựng: 1 credit cho mỗi 15 giây BẮT ĐẦU.

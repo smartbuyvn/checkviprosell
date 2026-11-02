@@ -81,7 +81,7 @@ describe('Lời giải thích hiện cho khách', () => {
   });
 
   it('luôn có ít nhất dòng video chuẩn, kể cả khi spec rỗng', () => {
-    // Spec rỗng lấy BASE_DURATION_SEC = 20 giây, nên ra 2 credit.
+    // Spec rỗng lấy BASE_DURATION_SEC = 15 giây, nên ra 1 credit.
     const dong = giaiThichCredit({});
     expect(dong.length).toBeGreaterThanOrEqual(1);
     expect(dong[0].credit).toBe(creditsFor({}));
