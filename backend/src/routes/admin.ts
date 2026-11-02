@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '../lib/auth';
+import { clearPromptCache, promptSources } from '../services/prompt-registry.service';
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:54321';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey); // Admin privileges
@@ -78,12 +79,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
   });
 
   // 2. Failed Jobs Log (Render Worker truth)
+  //
+  // Chi hoi 'failed'. Ban cu hoi ['failed', 'retryable_failed'] va 'retryable_failed'
+  // KHONG co trong enum render_status, nen Postgres tu choi CA CAU: hai endpoint nay
+  // khong bao gio tra duoc du lieu. Do that ngay 01/11/2026.
   fastify.get('/failed-jobs', async (request, reply) => {
     try {
        const { data: failedJobs } = await supabase
          .from('renders')
          .select('id, project_id, render_mode, status, error_code, error_message, duration_ms, updated_at')
-         .in('status', ['failed', 'retryable_failed'])
+         .in('status', ['failed'])
          .order('updated_at', { ascending: false })
          .limit(50);
        
@@ -97,7 +102,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/usage-summary', async (request, reply) => {
     try {
        const { count: totalCompletions } = await supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'completed');
-       const { count: totalFailures } = await supabase.from('renders').select('*', { count: 'exact', head: true }).in('status', ['failed', 'retryable_failed']);
+       const { count: totalFailures } = await supabase.from('renders').select('*', { count: 'exact', head: true }).in('status', ['failed']);
        const { data: latencies } = await supabase.from('usage_logs').select('meta').not('meta->>latency_ms', 'is', null).limit(100);
        let avgLatency = 0;
        if (latencies && latencies.length > 0) {
@@ -130,13 +135,33 @@ export async function adminRoutes(fastify: FastifyInstance) {
      return reply.send({ prompts: data });
   });
 
+  /**
+   * Sua noi dung mot prompt.
+   *
+   * Ban cu ghi vao cot `system_prompt` va `user_prompt_template` — hai cot do
+   * KHONG TON TAI trong bang (bang chi co `content`), nen moi lan sua deu hong.
+   * Va ngay ca khi ghi duoc cung vo ich: pipeline dung hang so viet cung, khong
+   * doc bang nay. Gio ca hai dau da noi voi nhau.
+   */
   fastify.put('/prompts/:id', async (request, reply) => {
      const { id } = request.params as any;
-     const { system_prompt, user_prompt_template } = request.body as any;
+     const body = request.body as any;
+     // Nhan ca ten cu de giao dien cu khong gay ngay, nhung ghi vao dung cot.
+     const content = body?.content ?? body?.system_prompt ?? body?.user_prompt_template;
+
+     if (typeof content !== 'string' || content.trim().length < 20) {
+        return reply.code(400).send({
+           error: 'Noi dung prompt phai la chuoi it nhat 20 ky tu. Prompt qua ngan lam model mat chi dan va sinh ra JSON sai.',
+        });
+     }
+
      const { error } = await supabase.from('prompts')
-        .update({ system_prompt, user_prompt_template, updated_at: new Date().toISOString() })
+        .update({ content, updated_at: new Date().toISOString() })
         .eq('id', id);
      if (error) return reply.code(500).send({ error: error.message });
+
+     // Xoa cache de lan render ke tiep dung ngay ban vua sua, khong phai cho het TTL.
+     clearPromptCache();
      return reply.send({ success: true });
   });
 

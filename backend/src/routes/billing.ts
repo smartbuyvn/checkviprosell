@@ -42,33 +42,24 @@ export async function billingRoutes(fastify: FastifyInstance) {
     // Danh sach nay chi dung khi doc bang plans that bai; sua o DB phai dong bo.
     const fallbackPlans = [
       {
-        id: 'free',
-        name: 'Free',
-        price: 'Miễn phí',
-        credits: 5,
-        features: ['5 credits dùng thử', 'Render bản nháp', '3 loại video', 'Overlay chữ'],
+        id: 'free', name: 'Free', price: 'Mien phi', credits: 3,
+        features: ['3 credits dung thu', 'Video co watermark', 'Do phan giai 720p', 'Render ban nhap'],
+        popular: false,
       },
       {
-        id: 'pro',
-        name: 'Pro',
-        price: '130,000₫',
-        credits: 50,
-        features: ['50 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ qua email'],
+        id: 'starter', name: 'Starter', price: '129.000d', credits: 30,
+        features: ['30 credits', 'Tat ca loai video', 'Xuat caption', 'Ho tro qua email'],
+        popular: false,
       },
       {
-        id: 'business',
-        name: 'Business',
-        price: '250,000₫',
-        credits: 110,
-        features: ['110 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'],
+        id: 'pro', name: 'Pro', price: '249.000d', credits: 80,
+        features: ['80 credits', 'Tat ca loai video', 'Xuat caption', 'Ho tro uu tien'],
         popular: true,
       },
       {
-        id: 'premium',
-        name: 'Premium',
-        price: '520,000₫',
-        credits: 240,
-        features: ['240 credits', 'Tất cả loại video', 'Xuất caption', 'Hỗ trợ ưu tiên'],
+        id: 'business', name: 'Business', price: '499.000d', credits: 180,
+        features: ['180 credits', 'Tat ca loai video', 'Xuat caption', 'Ho tro uu tien'],
+        popular: false,
       },
     ];
     return reply.send(fallbackPlans);
@@ -97,10 +88,41 @@ export async function billingRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'PLAN_NOT_PURCHASABLE', plan_code });
       }
 
-      // Bank Configuration (Can be overridden by .env)
-      const bankAcc = process.env.SEPAY_BANK_ACC || '123456789';
-      const bankName = process.env.SEPAY_BANK_NAME || 'MBBank';
-      const accName = process.env.SEPAY_ACCOUNT_NAME || 'NGUYEN VAN A';
+      /**
+       * Tai khoan nhan tien. KHONG co duong lui.
+       *
+       * ── Vi sao bo gia tri du phong ──
+       *
+       * Ban cu viet `process.env.SEPAY_BANK_ACC || '123456789'`. Ba gia tri du phong
+       * do la cho dien — `123456789` / `MBBank` / `NGUYEN VAN A` — va chung di
+       * THANG vao ma QR ma khach quet de chuyen tien.
+       *
+       * Nghia la: chi can quen dat bien tren may chu, moi khach tra tien deu chuyen
+       * vao mot so tai khoan khong phai cua minh, va he thong khong he keu mot tieng.
+       * Khach thay QR binh thuong, chuyen tien binh thuong, roi khong duoc cong credit
+       * — vi webhook khong bao gio nhan duoc giao dich nao.
+       *
+       * Do that ngay 30/10: 6 don da tao, 0 don nhan duoc tien.
+       *
+       * Tu choi dung ma QR con hon dung mot ma QR sai. Khach thay loi thi bao ngay;
+       * khach chuyen nham tien thi khong lay lai duoc.
+       */
+      const bankAcc = String(process.env.SEPAY_BANK_ACC || '').trim();
+      const bankName = String(process.env.SEPAY_BANK_NAME || '').trim();
+      const accName = String(process.env.SEPAY_ACCOUNT_NAME || '').trim();
+
+      if (!bankAcc || !bankName || !accName) {
+        const thieu = [
+          !bankAcc && 'SEPAY_BANK_ACC',
+          !bankName && 'SEPAY_BANK_NAME',
+          !accName && 'SEPAY_ACCOUNT_NAME',
+        ].filter(Boolean).join(', ');
+        fastify.log.error(`[Billing] Chua dat tai khoan nhan tien (${thieu}) — tu choi dung ma QR.`);
+        return reply.code(503).send({
+          error: 'PAYMENT_ACCOUNT_NOT_CONFIGURED',
+          message: 'Hệ thống thanh toán đang tạm ngưng. Vui lòng liên hệ hỗ trợ.',
+        });
+      }
       
       // Ma gan voi TUNG DON HANG, khong phai tung nguoi.
       // Truoc day noi dung la `VIPRO <8 hex dau cua user id>`, nen moi don cua cung mot

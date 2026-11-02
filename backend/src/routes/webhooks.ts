@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { MockSentry } from '../services/sentry.service';
+import { baoThanhToanXong } from '../services/email.notify';
 import { CreditService } from '../services/credit.service';
 import { isSecretConfigured, parseTransferCode, safeEqual, parseOrderRef } from '../lib/security';
 
@@ -38,7 +39,46 @@ export async function webhookRoutes(fastify: FastifyInstance) {
          return reply.send({ received: true, note: 'ignored_not_in_or_no_content' });
       }
 
-      // 3. Xac dinh DON HANG truoc, roi moi ra nguoi mua.
+      // 3. CHONG TRUNG — dat TRUOC moi viec khac.
+      //
+      // Ban cu dat buoc nay SAU khi tra don hang, va do that ngay 29/10 cho thay no
+      // khong bao gio chay cho lan gui lai: tra don loc `status = 'pending'`, don da
+      // tra thi khong con pending, nen tra hut, roi roi xuong duong tuong thich cu va
+      // tra ve `no_vipro_syntax`. Tien van dung — khong cong hai lan — nhung dung do
+      // MAY, va log thi noi doi: "noi dung khong chua ma nhan dien duoc" trong khi
+      // noi dung hoan toan hop le, chi la don da tra roi.
+      //
+      // Dat cong re nhat va dut khoat nhat len dau: no khong can doc gi tu CSDL ngoai
+      // mot lan chen, va no dung duoc cho MOI truong hop gui lai.
+      const idempotencyKey = `sepay_${sepayId}_${referenceCode}`;
+      const { error: idemError } = await supabase.from('idempotency_keys').insert({
+        idempotency_key: idempotencyKey,
+        action: 'sepay_payment',
+      });
+
+      if (idemError) {
+        if (idemError.code === 'PGRST205') {
+           // Fail-closed: không có chống trùng thì không cộng credit; 500 để SePay gửi lại sau
+           fastify.log.error(`[SePay Webhook] idempotency_keys table missing — refusing to process ${idempotencyKey}`);
+           return reply.status(500).send({ error: 'IDEMPOTENCY_UNAVAILABLE' });
+        } else {
+           fastify.log.warn(`[SePay Webhook] Da xu ly roi, bo qua: ${idempotencyKey}`);
+           return reply.send({ received: true, idempotent_stop: true });
+        }
+      }
+
+      /**
+       * Nha khoa chong trung de SePay gui lai lan nua.
+       *
+       * Chi goi o cac duong hong CO THE THU LAI (loi mang, loi doc CSDL). Duong
+       * "khong tim thay don" hay "tra thieu tien" thi KHONG nha: gui lai cung ra ket
+       * qua y het, va giu khoa lai thi lan sau khong phai chay lai ca luong.
+       */
+      const nhaKhoa = async () => {
+        await supabase.from('idempotency_keys').delete().eq('idempotency_key', idempotencyKey);
+      };
+
+      // 4. Xac dinh DON HANG truoc, roi moi ra nguoi mua.
       //
       // Noi dung chuyen khoan co hai dang:
       //   - Moi: "VIPRO P7K3M9QX" - ma gan voi TUNG DON HANG, tra ra dung goi khach da chon.
@@ -58,6 +98,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
           .maybeSingle();
         if (prErr) {
           fastify.log.error(`[SePay Webhook] Loi tra don ${orderRef}: ${prErr.message}`);
+          await nhaKhoa();
           return reply.status(500).send({ error: 'ORDER_LOOKUP_FAILED' });
         }
         if (pr) {
@@ -72,7 +113,14 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         // Duong tuong thich nguoc: suy ra nguoi dung tu ma cu.
         const shortId = parseTransferCode(content);
         if (!shortId) {
-          fastify.log.warn(`[SePay Webhook] Noi dung khong chua ma nhan dien duoc: ${content}`);
+          // Toi day nghia la: khong doc duoc ma don MOI, va cung khong phai ma CU.
+          // Neu noi dung co dang "VIPRO Pxxxxxxx" thi ly do that la don khong con
+          // treo nua — noi ro de nguoi doc log khong di tim nham huong.
+          fastify.log.warn(
+            orderRef
+              ? `[SePay Webhook] Ma don ${orderRef} hop le nhung khong con don treo nao — co the da tra roi`
+              : `[SePay Webhook] Noi dung khong chua ma nhan dien duoc: ${content}`
+          );
           return reply.send({ received: true, note: 'no_vipro_syntax' });
         }
 
@@ -131,23 +179,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({ error: 'PROFILE_NOT_FOUND' });
       }
 
-      // 4. Idempotency Check
-      const idempotencyKey = `sepay_${sepayId}_${referenceCode}`;
-      const { error: idemError } = await supabase.from('idempotency_keys').insert({
-        idempotency_key: idempotencyKey,
-        action: 'sepay_payment',
-      });
-
-      if (idemError) {
-        if (idemError.code === 'PGRST205') {
-           // Fail-closed: không có chống trùng thì không cộng credit; 500 để SePay gửi lại sau
-           fastify.log.error(`[SePay Webhook] idempotency_keys table missing — refusing to process ${idempotencyKey}`);
-           return reply.status(500).send({ error: 'IDEMPOTENCY_UNAVAILABLE' });
-        } else {
-           fastify.log.warn(`[SePay Webhook] Idempotency block — already processed: ${idempotencyKey}`);
-           return reply.send({ received: true, idempotent_stop: true });
-        }
-      }
 
       // 5. So credit lay tu DON HANG khach da chon, khong doan theo so tien.
       //
@@ -165,12 +196,15 @@ export async function webhookRoutes(fastify: FastifyInstance) {
 
       const { data: planRow, error: planErr } = await supabase
         .from('plans')
-        .select('code, credits, price')
+        .select('code, name, credits, price')
         .eq('code', pending.plan_code)
         .maybeSingle();
 
       if (planErr || !planRow) {
         fastify.log.error(`[SePay Webhook] Khong doc duoc goi ${pending.plan_code}`);
+        // Doc bang `plans` hong la loi tam thoi; khong nha khoa thi lan gui lai bi
+        // chan vinh vien va khach da tra tien se khong bao gio nhan duoc credit.
+        await nhaKhoa();
         return reply.status(500).send({ error: 'PLAN_LOOKUP_FAILED' });
       }
 
@@ -220,7 +254,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
 
       if (payErr || !paymentRow) {
         // Tra lai khoa chong trung de SePay gui lai, neu khong lan sau se bi chan nham.
-        await supabase.from('idempotency_keys').delete().eq('idempotency_key', idempotencyKey);
+        await nhaKhoa();
         fastify.log.error(
           `[SePay Webhook] Khong cap nhat duoc don ${pending.id}: ${payErr?.message ?? 'khong con pending'}`
         );
@@ -246,13 +280,51 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         fastify.log.info(`[SePay Webhook] User ${userId} has referrer, granting +10% bonus credits: ${finalCreditsToGrant}`);
       }
 
-      // 7. Grant Credits
+      // 7. Cong credit — va PHAI kiem tra ket qua.
+      //
+      // Ban cu gan `creditResult` roi khong doc. Ledger ghi hong thi don van 'paid',
+      // webhook van tra `success: true, credits_granted: N`, va khach mat tien ma
+      // khong co credit nao — khong mot loi nao bao. Day la lo thung tien ton tai
+      // im lang: khong ai di soat mot don da ghi la da tra.
       const creditResult = await CreditService.grantToLedger(
         userId,
         finalCreditsToGrant,
         `sepay_${planCode}`,
         paymentRow?.id
       );
+
+      if (!creditResult.success) {
+        // Tra don ve 'pending' va nha khoa chong trung, de lan SePay gui lai chay lai
+        // tron ven ca luong nay va cong duoc credit. Tu lanh qua duong san co, khong
+        // can duong sua rieng.
+        //
+        // Neu khong co lan gui lai nao: don nam o 'pending' van dung hon 'paid' —
+        // "da nhan tien, chua giao hang" thi con nguoi nhin thay, con 'paid' khong
+        // credit thi trong nhu da xong va khong ai mo ra xem.
+        await supabase.from('payments').update({ status: 'pending' }).eq('id', paymentRow.id);
+        await nhaKhoa();
+
+        const loi =
+          `[SePay Webhook] NGHIEM TRONG: da nhan ${transferAmount}d cua ${userId} ` +
+          `nhung KHONG cong duoc ${finalCreditsToGrant} credit (don ${paymentRow.id}, ` +
+          `goi ${planCode}, ref ${referenceCode}): ${creditResult.error}`;
+        fastify.log.error(loi);
+        MockSentry.captureException(new Error(loi), { userId, paymentId: paymentRow.id });
+
+        return reply.status(500).send({ error: 'CREDIT_GRANT_FAILED' });
+      }
+
+      // Bao cho khach bang email. KHONG `await`: thu la viec phu, webhook phai tra
+      // loi SePay nhanh. `baoThanhToanXong` tu nuot moi loi nen khong can bat o day.
+      void baoThanhToanXong({
+        userId,
+        // Ten HIEN THI cua goi, khong phai ma noi bo: khach doc "Starter" chu
+        // khong doc "starter". Day la cung loai ro ri da gap o hook "budget".
+        tenGoi: String((planRow as any).name || planCode),
+        soTien: transferAmount,
+        creditNhan: creditsToGrant,
+        creditThuong: finalCreditsToGrant - creditsToGrant,
+      });
 
       // 8. Hoa hong tra bang TIEN (VND).
       //
