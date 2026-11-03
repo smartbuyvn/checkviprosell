@@ -128,6 +128,26 @@ test('leaseDangBat: MAC DINH TAT — worker chay y nhu truoc', () => {
   assert.equal(leaseDangBat({ HANG_DOI_LEASE: '1' }), true);
 });
 
+test('leaseDangBat: chiu duoc khoang trang — cmd cua Windows them vao', () => {
+  // `set HANG_DOI_LEASE=1 && node ...` trong cmd cho ra "1 " voi dau cach o cuoi, vi
+  // cmd lay ca khoang trang truoc && vao gia tri. Do ngay 03/11/2026.
+  //
+  // So thang === '1' se ra false, nen co khong co tac dung ma KHONG BAO GI: worker
+  // khoi dong binh thuong va in ra "duong CU". Day la dang loi ton nhieu gio nhat.
+  for (const x of ['1 ', ' 1', ' 1 ', '1\t', '\n1\n']) {
+    assert.equal(leaseDangBat({ HANG_DOI_LEASE: x }), true, `voi ${JSON.stringify(x)}`);
+  }
+});
+
+test('leaseDangBat: nhan ca true/yes/on — nguoi ta hay go the trong .env', () => {
+  for (const x of ['true', 'TRUE', 'True', 'yes', 'on', ' true ']) {
+    assert.equal(leaseDangBat({ HANG_DOI_LEASE: x }), true, `voi "${x}"`);
+  }
+  for (const x of ['', '0', 'false', 'no', 'off', 'bat']) {
+    assert.equal(leaseDangBat({ HANG_DOI_LEASE: x }), false, `voi "${x}"`);
+  }
+});
+
 // ───────────────────────── Nhận job ─────────────────────────
 
 test('nhanJob: tra ve dong va truyen dung tham so cho RPC', async () => {

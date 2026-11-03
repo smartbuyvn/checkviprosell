@@ -177,6 +177,45 @@ echo   Dong cua so nay de tat han.
 echo.
 ping -n 4 127.0.0.1 >nul
 
+:: ===================================================================
+::  BIEN DICH LAI TRUOC KHI CHAY
+::
+::  `npm run worker:render` chay dist\render.worker.js, KHONG phai src.
+::  Ngay 03/11/2026 dist\ la ban cua 01/11 — cu hon src hai ngay va khong
+::  he co ma hang doi co khoa. Bat HANG_DOI_LEASE roi khoi dong voi dist cu
+::  thi co KHONG CO TAC DUNG GI, va phep thu chung minh sai ma khong ai biet.
+::
+::  Build mat ~20 giay va chi chay mot lan moi lan mo script, khong chay
+::  lai trong vong tu khoi dong lai.
+:: ===================================================================
+echo   Bien dich lai backend...
+cd /d "%~dp0backend"
+call npm run build
+if errorlevel 1 (
+  echo.
+  echo   [X] Bien dich that bai. KHONG chay worker voi dist cu — no se
+  echo       chay ma cu ma khong bao gi.
+  echo.
+  pause
+  exit /b 1
+)
+echo   [OK] Da bien dich
+echo.
+
+:: ===================================================================
+::  HANG DOI CO KHOA
+::
+::  Bat tu 03/11/2026. Worker nhan job qua nhan_job_render() dung
+::  FOR UPDATE SKIP LOCKED, thay vi `select where status='pending'` khong
+::  khoa gi. Moi lenh ghi kem attempt_id nen worker mat lease khong ghi de
+::  duoc ket qua cua attempt moi. reclaimStuckJobs nghi — RPC tu nhan lai
+::  job het lease trong cung mot cau.
+::
+::  TAT: doi thanh 0, hoac xoa dong duoi. Worker in ro dang chay duong nao
+::  ngay luc khoi dong, nen khong can doan.
+:: ===================================================================
+set HANG_DOI_LEASE=1
+
 set RESTARTS=0
 :worker_loop
 cd /d "%~dp0backend"

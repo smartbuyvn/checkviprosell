@@ -97,9 +97,23 @@ export function nhipTimGiay(leaseGiay: number = LEASE_GIAY_MAC_DINH): number {
   return Math.max(5, Math.floor(leaseGiay / 3));
 }
 
-/** Đường nhận job mới có bật hay chưa. Mặc định TẮT — worker chạy y như trước. */
+/**
+ * Đường nhận job mới có bật hay chưa. Mặc định TẮT — worker chạy y như trước.
+ *
+ * ── Vì sao phải `trim()` ──
+ *
+ * `set HANG_DOI_LEASE=1 && node ...` trong cmd của Windows cho ra giá trị `"1 "`, **có
+ * dấu cách ở cuối** — cmd lấy cả khoảng trắng trước `&&` vào giá trị. Đo ngày 03/11/2026.
+ *
+ * So thẳng `=== '1'` sẽ ra false, nên cờ không có tác dụng mà **không báo gì**: worker
+ * khởi động bình thường, in ra "đường CŨ", và người thử tưởng mình đã bật. Một dòng
+ * `trim()` đổi một lỗi im lặng thành không có lỗi.
+ *
+ * Nhận cả `true`/`yes`/`on` vì người ta hay gõ thế trong tệp `.env`.
+ */
 export function leaseDangBat(env: Record<string, string | undefined> = process.env): boolean {
-  return env.HANG_DOI_LEASE === '1';
+  const v = (env.HANG_DOI_LEASE ?? '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
 
 /**
